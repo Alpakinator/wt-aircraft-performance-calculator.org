@@ -1,0 +1,103 @@
+<!doctype html>
+
+<script>
+	function updateScreenWidth() {
+		const width = window.screen.width;
+		const height = window.screen.height;
+		const devicePixelRatio = window.devicePixelRatio || 1;
+
+		const actualWidth = width * devicePixelRatio;
+		const actualHeight = height * devicePixelRatio;
+
+		const screenWidth = actualWidth > actualHeight ? actualWidth : actualHeight;
+		document.documentElement.style.setProperty('--screen-width', screenWidth + 'px');
+	}
+	updateScreenWidth();
+	// Updating --screen-width on window resize
+	window.addEventListener('resize', updateScreenWidth);
+</script>
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>
+
+<style>
+	@font-face {
+		font-family: symbols_skyquake;
+		src: url('fonts/symbols_skyquake.ttf') format('truetype');
+		unicode-range: U+2417-2900, U+F059, U+22E0, U+25D0;
+	}
+	@font-face {
+		font-family: 'Intervar';
+		src: url('fonts/InterVariable.ttf') format('truetype');
+	}
+	:root {
+		--bg-col: #0d1116; /* Define your background color here */
+	}
+	/* #0E1012; */
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+	* {
+		margin: 0;
+	}
+	html {
+		width: --screen-width;
+		font-size: calc(0.009 * var(--screen-width));
+
+		background-color: var(--bg-col);
+		/* color: #F2F5FA; */
+		color: #fdfdfde6;
+	}
+	/* #fdfdfde6; */
+	/* #fdfdfde6; */
+	input[type='number'] {
+		appearance: none;
+		-moz-appearance: textfield;
+	}
+	body,
+	button,
+	.legendtext,
+	.draglayer.cursor-crosshair,
+	.hoverlayer,
+	.nsewdrag.drag,
+	.infolayer {
+		font-family: symbols_skyquake, Intervar, 'Segoe UI', 'Courier New', Roboto, Tahoma,
+			'Comic Sans MS', sans-serif !important;
+	}
+
+	button {
+		cursor: pointer;
+		padding: 0;
+	}
+	.modebar-container {
+		position: relative;
+		right: 100% !important;
+	}
+
+	.modebar.vertical {
+		top: 3.5rem !important;
+		left: 2rem;
+	}
+
+	div.modebar-group {
+		padding: 0 !important;
+	}
+
+	a.modebar-btn {
+		height: 2.4rem !important;
+		font-size: 1.2rem !important;
+		aspect-ratio: 1/1;
+		border: 2px solid transaprent;
+	}
+</style>
