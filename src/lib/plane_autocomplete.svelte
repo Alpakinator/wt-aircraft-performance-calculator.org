@@ -72,7 +72,7 @@
 			multiple
 			renderer={ingame_icon_maker}
 			options={central_ingame_planes}
-			placeholder="Click and type"
+			placeholder="Select Plane"
 			resetOnSelect={false}
 			max={20}
 			keepSelectionInList={false}
