@@ -9,8 +9,8 @@
 	import { onMount } from 'svelte';
 
 	let power_modes_list = [
-		['military', '100% throttle in WT'],
-		['WEP', 'War Emergency Power. 110% throttle in WT']
+		['WEP', 'War Emergency Power. 110% throttle in WT'],
+		['military', '100% throttle in WT']
 	];
 
 	let speed_types = [

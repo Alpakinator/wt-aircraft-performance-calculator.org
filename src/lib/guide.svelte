@@ -51,7 +51,7 @@
       <li>P-51 - Bad power/weight, and starts losing power at 2km already. However at 3.7 it has great cannons and it's pretty fast so it's an mediocre choice.</li>
       <li>P-51C-10 - By far the best power/weight relative to its Br aut of all P-51s. 
         It's the best choice performance wise especialy since it's the most lightweight, so it dogfights decently.</li> 
-      <li>P-51D-5 and D-20 - A bad power to weight for 4.0 br. Definetly the worst P-51s to fly in.</li>
+      <li>P-51D-5 and D-20 - A bad power to weight for 4.0 br. Definitely the worst P-51s to fly in.</li>
       <li> P-51D-10 - A good increase in power/weight over D-5. A very good choice.</li>
       <li>P-51D-30 - A nice increase over D-10 but it's not worth the 0.7 Br increase. A good choice.</li>
       <li>P-51H-5 - Yup, a huge difference in performance over all P-51s. Very good pick even for a 6.3 Br.</li>
@@ -101,11 +101,6 @@
 				If you do, then your bug report will be rejected. Moreover Gajin bothered with such incorrect bug reports could take steps to restrict datamining,
 				which is a foundation of projects like this. </li>
 		</ul>
-
-
-
-
-
 
 
 			<!-- However you can use these graphs to detect potential historical inaccuracies. 

@@ -9,7 +9,6 @@
 	import { plotter } from '$lib/graph_maker.js';
 
 	let bg_col = getComputedStyle(document.body).getPropertyValue('--bg-col');
-	console.log(bg_col);
 	let performance_type = 'power/weight';
 	let power_modes = ['WEP'];
 	let speed_type = 'IAS';
@@ -26,7 +25,7 @@
 		30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30
 	];
 	//   const colour_set = ['rgb(228,26,28)', 'rgb(55,126,184)', 'rgb(77,175,74)', 'rgb(152,78,163)', 'rgb(255,127,0)', 'rgb(255,255,51)', 'rgb(166,86,40)', 'rgb(247,129,191)', 'rgb(153,153,153)', 'rgb(27,158,119)', 'rgb(217,95,2)', 'rgb(117,112,179)', 'rgb(231,41,138)', 'rgb(102,166,30)', 'rgb(230,171,2)', 'rgb(166,118,29)', 'rgb(102,102,102)', 'rgb(254,0,206)', 'rgb(34,255,167)'];
-	const colour_set = [
+	let colour_set = [
 		'#E41A1C',
 		'#006fa1',
 		'#4DAF4A',
@@ -75,6 +74,7 @@
 		}
 		let named_power_curves_merged: { [key: string]: { [key: string]: { [key: number]: number } } } =
 			{}; // Initialize outside the loop
+		let all_values:any = [];
 		let planejsons: any = {};
 		let masses: any = {};
 		let promises = chosenplanes.map((plane) => {
@@ -95,7 +95,6 @@
 					console.error(error);
 				});
 
-			console.log(masses);
 			let plane_promises = power_modes.map((power_mode) => {
 				return fetch(
 					`https://raw.githubusercontent.com/Alpakinator/wt-aircraft-performance-calculator/main/output_files/plane_power_files/${plane}_${power_mode}.json`
@@ -137,13 +136,11 @@
 		});
 
 		Promise.allSettled(promises).then(() => {
-			console.log(planejsons, masses);
 			for (let file_name in planejsons) {
 				let central_name = file_name.substring(0, file_name.lastIndexOf('_'));
 				let index = chosenplanes.findIndex((x) => x === central_name);
 				let power_curves_merged = {};
 				let mode = file_name.slice(file_name.lastIndexOf('_') + 1);
-				console.log(fuel_percents[index] / 100);
 				let speed_mult = planejsons[file_name]['speed_mult'];
 				let ingame_name: string = chosenplanes_ingame[index];
 				let power_merged_str_noram = planejsons[file_name]['power_at_alt'];
@@ -164,20 +161,22 @@
 						masses[central_name]['all_ammo_mass'];
 					console.log(ingame_name, total_mass, 'kg')
 					let engine_count = planejsons[file_name]['engine_count'];
-					for (let alt = 0; alt < max_altm; alt += 1) {
+					for (let alt = 0; alt < max_altm; alt += 25) {
 						let alt_RAM = rameffect_er(alt, air_tempC, speedkph, speed_type, speed_mult);
 						power_curves_merged[Math.round(alt * alt_factor)] =
 							(power_merged_str_noram[Math.round(alt_RAM / 10) + 400] / total_mass) * engine_count;
+						all_values.push((power_merged_str_noram[Math.round(alt_RAM / 10) + 400] / total_mass) * engine_count)
 					}
 				}
 				// Add data for each plane without overwriting previous data
 				named_power_curves_merged[ingame_name] = named_power_curves_merged[ingame_name] || {};
 				named_power_curves_merged[ingame_name][mode] = power_curves_merged;
 			}
-
+			console.log(all_values)
 			let final_data = dict_dataframer(named_power_curves_merged, alt_unit);
 			plotter(
 				final_data,
+				all_values,
 				max_alt,
 				alt_unit,
 				speed,

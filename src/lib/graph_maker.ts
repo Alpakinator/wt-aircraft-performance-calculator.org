@@ -60,11 +60,16 @@ export function dict_dataframer(
 	final_data.push({ 'Altitude [m]': altitudeValues });
 
 	// Add engine power data for each plane and mode combination
+	// for (let planeName in enginePowerData) {
+	// 	let planeData = enginePowerData[planeName];
+	// 	for (let mode in planeData) {
+	// 		final_data.push({ [planeName + ' (' + mode + ')']: planeData[mode] });
+	// 	}
+	// }
 	for (let planeName in enginePowerData) {
 		let planeData = enginePowerData[planeName];
-		for (let mode in planeData) {
-			final_data.push({ [planeName + ' (' + mode + ')']: planeData[mode] });
-		}
+			final_data[planeName] = planeData;
+		
 	}
 
 	return final_data;
@@ -72,6 +77,7 @@ export function dict_dataframer(
 
 export function plotter(
 	final_data,
+	all_values,
 	max_alt,
 	alt_unit,
 	speed,
@@ -85,7 +91,8 @@ export function plotter(
 	hoverstyle,
 	bg_col
 ) {
-	let font_fam = 'Intervar';
+	// console.log(final_data)
+	let font_fam = 'Inter';
 	const alt_vals: number = final_data[0]['Altitude [m]'];
 	final_data.shift();
 	// console.log(final_data)
@@ -93,7 +100,7 @@ export function plotter(
 		x: any;
 		y: any;
 		mode: string;
-		line: { width: number; shape: string; dash: 'solid' };
+		line: { width: number; shape: string; dash: string };
 		type: string;
 		name: string;
 		marker;
@@ -111,28 +118,33 @@ export function plotter(
 		no_bugwarning_y_anchor;
 	let air_temp_info = 'Temperature at sea level: ' + air_temp + ' ' + air_temp_unit;
 	let plane: number;
-	let index = 0;
+	let colo_index = 0;
+	let line_dashes = ['solid', 'dash']
 	if (axis_layout) {
-		for (const key in final_data) {
-			for (const plane in final_data[key]) {
+		for (const plane in final_data) {
+			let dash_index = 0
+			for (const mode in final_data[plane]) {
+				let plane_mode = plane + '(' + mode + ')'
 				final_object.push({
-					x: final_data[key][plane],
+					x: final_data[plane][mode],
 					y: alt_vals,
 					mode: 'lines',
-					line: { width: 3, shape: 'linear', dash: 'solid' },
-					type: 'scattergl',
-					name: plane,
-					marker: { color: colour_set[index] },
+					line: { width: 3, shape: 'linear', dash: line_dashes[dash_index] },
+					type: 'linegl',
+					name: plane_mode,
+					marker: { color: colour_set[colo_index] },
 					hoverinfo: 'x+y+text',
-					text: plane
+					text: plane_mode
 					//         hovertemplate:
 					// "%{text}" +
 					// "%{yaxis.title.text}: %{y:}<br>" +
 					// "%{xaxis.title.text}: %{x:}<br>" +
 					// "<extra></extra>"
+					
 				});
-				index++;
+				dash_index++;
 			}
+			colo_index++;
 		}
 		no_bugwarning_angle = 270;
 		no_bugwarning_x = 1;
@@ -147,8 +159,8 @@ export function plotter(
 				speed_unit +
 				' ' +
 				speed_type;
-			highest_x = Math.max(...final_data.flatMap((plane) => Object.values(plane)).flat());
-			lowest_x = Math.min(...final_data.flatMap((plane) => Object.values(plane)).flat());
+			highest_x = Math.max(all_values);
+			lowest_x = Math.min(all_values);
 			// console.log(highest_x, lowest_x)
 			highest_x = Math.ceil((highest_x + 100) / 100) * 100;
 			lowest_x = Math.floor((lowest_x - 100) / 100) * 100;
@@ -169,8 +181,8 @@ export function plotter(
 				speed_unit +
 				' ' +
 				speed_type;
-			highest_x = Math.max(...final_data.flatMap((plane) => Object.values(plane)).flat());
-			lowest_x = Math.min(...final_data.flatMap((plane) => Object.values(plane)).flat());
+			highest_x = Math.max(all_values);
+			lowest_x = Math.min(all_values);
 			highest_x += 0.03;
 			lowest_x -= 0.03;
 			x_axis_title = 'Power/Weight [hp/kg]';
@@ -184,18 +196,20 @@ export function plotter(
 			}
 		}
 	} else {
-		for (const key in final_data) {
-			for (const plane in final_data[key]) {
+		for (const plane in final_data) {
+			let dash_index = 0
+			for (const mode in final_data[plane]) {
+				let plane_mode = plane + '(' + mode + ')'
 				final_object.push({
-					y: final_data[key][plane],
+					y: final_data[plane][mode],
 					x: alt_vals,
 					mode: 'lines',
-					line: { width: 3, shape: 'linear', dash: 'solid' },
-					type: 'scattergl',
-					name: plane,
-					marker: { color: colour_set[index] },
+					line: { width: 3, shape: 'linear', dash: line_dashes[dash_index] },
+					type: 'linegl',
+					name: plane_mode,
+					marker: { color: colour_set[colo_index]},
 					hoverinfo: 'x+y+text',
-					text: plane
+					text: plane_mode
 					//         hovertemplate:
 					//         "<b>%{text}</b><br><br>" +
 					// "%{yaxis.title.text}: %{y:$,.0f}<br>" +
@@ -203,8 +217,9 @@ export function plotter(
 					// "Number Employed: %{marker.size:,}" +
 					// "<extra></extra>"
 				});
-				index++;
+				dash_index++;
 			}
+			colo_index++;
 		}
 		no_bugwarning_angle = 0;
 		no_bugwarning_x = 1;
@@ -219,8 +234,8 @@ export function plotter(
 				speed_unit +
 				' ' +
 				speed_type;
-			highest_y = Math.max(...final_data.flatMap((plane) => Object.values(plane)).flat());
-			lowest_y = Math.min(...final_data.flatMap((plane) => Object.values(plane)).flat());
+			highest_y = Math.max(all_values);
+			lowest_y = Math.min(all_values);
 			highest_y = Math.ceil((highest_y + 100) / 100) * 100;
 			lowest_y = Math.floor((lowest_y - 100) / 100) * 100;
 			y_axis_title = 'Power [hp]';
@@ -240,8 +255,10 @@ export function plotter(
 				speed_unit +
 				' ' +
 				speed_type;
-			highest_y = Math.max(...final_data.flatMap((plane) => Object.values(plane)).flat());
-			lowest_y = Math.min(...final_data.flatMap((plane) => Object.values(plane)).flat());
+			highest_y = Math.max(all_values);
+			lowest_y = Math.min(all_values);
+			// highest_y = Math.max(...final_data.flatMap((plane) => Object.values(plane)).flat());
+			// lowest_y = Math.min(...final_data.flatMap((plane) => Object.values(plane)).flat());
 			highest_y += 0.03;
 			lowest_y -= 0.03;
 			y_axis_title = 'Power/Weight [hp/kg]';
@@ -255,7 +272,6 @@ export function plotter(
 			}
 		}
 	}
-
 	var layout = {
 		paper_bgcolor: bg_col,
 		plot_bgcolor: bg_col,
@@ -298,7 +314,7 @@ export function plotter(
 			},
 			{
 				text: "Do not use in War Thunder bug reports, because it's not <br>a valid source. Otherwise Gaijin can ban datamining forever!",
-				opacity: 0.12,
+				opacity: 0.35,
 				showarrow: false,
 				font: { size: 16, color: 'white', family: font_fam },
 				x: no_bugwarning_x,
@@ -315,7 +331,7 @@ export function plotter(
 			gridwidth: 2,
 			zerolinecolor: '#1A242E',
 			zerolinewidth: 3,
-			font: { size: 18, family: 'Intervar', color: '#fdfdfde6' },
+			font: { size: 18, family: 'Inter', color: '#fdfdfde6' },
 			title: { text: x_axis_title, font: { size: 18 }, standoff: 20 },
 			range: [lowest_x, highest_x],
 			dtick: x_axis_tick,
@@ -326,7 +342,7 @@ export function plotter(
 			gridwidth: 2,
 			zerolinecolor: '#1A242E',
 			zerolinewidth: 3,
-			font: { size: 18, family: 'Intervar', color: '#fdfdfde6' },
+			font: { size: 18, family: 'Inter', color: '#fdfdfde6' },
 			title: { text: y_axis_title, font: { size: 18 }, standoff: 10 },
 			range: [lowest_y, highest_y],
 			dtick: y_axis_tick,

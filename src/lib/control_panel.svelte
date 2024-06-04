@@ -48,7 +48,7 @@
 	button,
 	select,
 	option {
-		font-style: Intervar;
+		font-style: Inter;
 		white-space: pre-wrap !important;
 
 		outline: 0.15rem solid transparent;
@@ -75,7 +75,7 @@
 		display: grid;
 		grid-template-rows: 1fr 1fr;
 		grid-template-columns: 25% 25% 25% 25%;
-		font-style: Intervar;
+		font-style: Inter;
 		padding: 0;
 	}
 	#home_button {
@@ -84,7 +84,7 @@
 		display: flex;
 		margin-right: 0.2rem;
 		margin-bottom: 0.2rem;
-		font-style: Intervar;
+		font-style: Inter;
 		white-space: pre-wrap;
 		outline: 0.15rem solid transparent;
 		transition: outline-color 0.3s;

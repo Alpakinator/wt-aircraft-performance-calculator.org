@@ -9,7 +9,7 @@
 	export let fuel_percents;
 	export let performance_type;
 	let chosenplanes_fuel;
-
+	
 	const PlaneIDsToNamesmapper = (planes) => {
 		return planes.map((planeId) => {
 			const matchingPlane = central_ingame_planes.find((plane) => plane.id === planeId);
@@ -18,9 +18,9 @@
 	};
 
 	$: chosenplanes_ingame = PlaneIDsToNamesmapper(chosenplanes);
-
 	function ingame_icon_maker(plane) {
 		var optionText = plane.name;
+		
 		if (
 			[
 				'p-63a-10',
@@ -72,7 +72,7 @@
 			multiple
 			renderer={ingame_icon_maker}
 			options={central_ingame_planes}
-			placeholder="Select Plane"
+			placeholder="Search by typing"
 			resetOnSelect={false}
 			max={20}
 			keepSelectionInList={false}
@@ -80,6 +80,10 @@
 			bind:value={chosenplanes}
 		></Svelecte>
 	</grid-item>
+	<!-- {#each chosenplanes as plane, index}
+			<grid-item class="colour_plane">
+			</grid-item>
+		{/each} -->
 	{#if performance_type === 'power/weight'}
 		<grid-item id="fuel_percent_label" style="display:flex;"> % of max fuel: </grid-item>
 
@@ -135,8 +139,8 @@
 	}
 	.autocomplete_panel {
 		display: grid;
-		grid-gap: 0.2rem;
-		grid-template-columns: 50% 12.5% 12.5% 12.5% 12.5%;
+		row-gap: 0.2rem;
+		grid-template-columns: 50% 0.2rem 12.5% 12.5% 12.5% 12.5%;
 		grid-template-rows: 1.5rem 1.8rem repeat(40, 3.412rem);
 	}
 	/* #autocomplete_title{
@@ -146,16 +150,23 @@
 
 	#fuel_percent_label {
 		display: flex;
-		grid-column: 2;
+		grid-column: 3;
 		grid-row: 1 / span 2;
 	}
 
 	#plane_autocomplete {
 		grid-column: 1;
-		grid-row: 2 / span 100;
+		grid-row: 2 / span 40;
 		align-self: start;
 		background-color: #111111;
 	}
+
+	/* .colour_plane{
+		width: 100%;
+		background-color: #1e262e;
+		text-align: center;
+		grid-column: 2;
+	} */
 
 	:global(.sv-control.svelte-hi60qz) {
 		background-color: #1e262e !important;
@@ -220,7 +231,7 @@
 		width: 100%;
 		background-color: #1e262e;
 		text-align: center;
-		grid-column: 2;
+		grid-column: 3;
 	}
 
 	input::-webkit-outer-spin-button,

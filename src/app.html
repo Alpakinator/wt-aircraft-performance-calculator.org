@@ -36,7 +36,7 @@
 		unicode-range: U+2417-2900, U+F059, U+22E0, U+25D0;
 	}
 	@font-face {
-		font-family: 'Intervar';
+		font-family: 'Inter';
 		src: url('fonts/InterVariable.ttf') format('truetype');
 	}
 	:root {
@@ -53,11 +53,12 @@
 	}
 	html {
 		width: --screen-width;
-		font-size: calc(0.009 * var(--screen-width));
+		font-size: calc(var(--screen-width) * 0.009);
 
 		background-color: var(--bg-col);
 		/* color: #F2F5FA; */
 		color: #fdfdfde6;
+		overflow-x: scroll;
 	}
 	/* #fdfdfde6; */
 	/* #fdfdfde6; */
@@ -72,7 +73,7 @@
 	.hoverlayer,
 	.nsewdrag.drag,
 	.infolayer {
-		font-family: symbols_skyquake, Intervar, 'Segoe UI', 'Courier New', Roboto, Tahoma,
+		font-family: symbols_skyquake, Inter, 'Segoe UI', 'Courier New', Roboto, Tahoma,
 			'Comic Sans MS', sans-serif !important;
 	}
 
