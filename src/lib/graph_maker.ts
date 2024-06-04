@@ -159,8 +159,8 @@ export function plotter(
 				speed_unit +
 				' ' +
 				speed_type;
-			highest_x = Math.max(all_values);
-			lowest_x = Math.min(all_values);
+			highest_x = Math.max(...all_values);
+			lowest_x = Math.min(...all_values);
 			// console.log(highest_x, lowest_x)
 			highest_x = Math.ceil((highest_x + 100) / 100) * 100;
 			lowest_x = Math.floor((lowest_x - 100) / 100) * 100;
@@ -181,8 +181,8 @@ export function plotter(
 				speed_unit +
 				' ' +
 				speed_type;
-			highest_x = Math.max(all_values);
-			lowest_x = Math.min(all_values);
+			highest_x = Math.max(...all_values);
+			lowest_x = Math.min(...all_values);
 			highest_x += 0.03;
 			lowest_x -= 0.03;
 			x_axis_title = 'Power/Weight [hp/kg]';
@@ -234,8 +234,8 @@ export function plotter(
 				speed_unit +
 				' ' +
 				speed_type;
-			highest_y = Math.max(all_values);
-			lowest_y = Math.min(all_values);
+			highest_y = Math.max(...all_values);
+			lowest_y = Math.min(...all_values);
 			highest_y = Math.ceil((highest_y + 100) / 100) * 100;
 			lowest_y = Math.floor((lowest_y - 100) / 100) * 100;
 			y_axis_title = 'Power [hp]';
@@ -255,8 +255,8 @@ export function plotter(
 				speed_unit +
 				' ' +
 				speed_type;
-			highest_y = Math.max(all_values);
-			lowest_y = Math.min(all_values);
+			highest_y = Math.max(...all_values);
+			lowest_y = Math.min(...all_values);
 			// highest_y = Math.max(...final_data.flatMap((plane) => Object.values(plane)).flat());
 			// lowest_y = Math.min(...final_data.flatMap((plane) => Object.values(plane)).flat());
 			highest_y += 0.03;

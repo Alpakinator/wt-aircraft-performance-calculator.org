@@ -172,7 +172,6 @@
 				named_power_curves_merged[ingame_name] = named_power_curves_merged[ingame_name] || {};
 				named_power_curves_merged[ingame_name][mode] = power_curves_merged;
 			}
-			console.log(all_values)
 			let final_data = dict_dataframer(named_power_curves_merged, alt_unit);
 			plotter(
 				final_data,
