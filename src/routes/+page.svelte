@@ -6,6 +6,20 @@
   import Entrance from '$lib/entrance.svelte'
 </script>
 
+<svelte:head>
+  <meta property="og:url" content="https://wtapc.org/">
+  <meta property="og:title" content="War Thunder Aircraft Performance Calcuator">
+  <meta property="og:description" content="Graphs of engine power and power/weight of all piston aircraft in War Thunder, at all altitudes.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://wtapc.org/images/WTAPC_logo_1280.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta property="twitter:domain" content="wtapc.org">
+  <meta property="twitter:url" content="https://wtapc.org/">
+  <meta name="twitter:title" content="War Thunder Aircraft Performance Calcuator">
+  <meta name="twitter:description" content="Graphs of engine power and power/weight of all piston aircraft in War Thunder, at all altitudes.">
+  <meta name="twitter:image" content="https://wtapc.org/images/WTAPC_logo_1280.png">
+</svelte:head>
 <div class="page_body">
   <Home_Top_panel/> 
   <Entrance/>

@@ -136,6 +136,7 @@
 		});
 
 		Promise.allSettled(promises).then(() => {
+			console.log(planejsons, chosenplanes)
 			for (let file_name in planejsons) {
 				let central_name = file_name.substring(0, file_name.lastIndexOf('_'));
 				let index = chosenplanes.findIndex((x) => x === central_name);
@@ -170,12 +171,19 @@
 				}
 				// Add data for each plane without overwriting previous data
 				named_power_curves_merged[ingame_name] = named_power_curves_merged[ingame_name] || {};
-				named_power_curves_merged[ingame_name][mode] = power_curves_merged;
+				// named_power_curves_merged[ingame_name][mode] = power_curves_merged;
+				if (mode === 'WEP') {
+					named_power_curves_merged[ingame_name] = { WEP: power_curves_merged, ...named_power_curves_merged[ingame_name] };
+				} else if (mode === 'military') {
+					named_power_curves_merged[ingame_name] = { ...named_power_curves_merged[ingame_name], military: power_curves_merged };
+				}
 			}
+			
 			let final_data = dict_dataframer(named_power_curves_merged, alt_unit);
 			plotter(
 				final_data,
 				all_values,
+				chosenplanes,
 				max_alt,
 				alt_unit,
 				speed,

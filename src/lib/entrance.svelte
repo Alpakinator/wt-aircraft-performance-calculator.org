@@ -5,7 +5,7 @@
 	<span id="catchphrase_footer"
 		>If you haven't, check out a guide below<br /> before you enter.</span
 	>
-	<a id="calculator_link" href="/calc">
+	<a id="calculator_link" href="/calculator">
 		<img src="/images/plot_icon.png" id="graph_img" alt="Icon of an example power plot" />
 		<span id="calc_text">Enter</span>
 	</a>

@@ -78,6 +78,7 @@ export function dict_dataframer(
 export function plotter(
 	final_data,
 	all_values,
+	chosenplanes,
 	max_alt,
 	alt_unit,
 	speed,
@@ -91,7 +92,7 @@ export function plotter(
 	hoverstyle,
 	bg_col
 ) {
-	// console.log(final_data)
+	console.log(final_data)
 	let font_fam = 'Inter';
 	const alt_vals: number = final_data[0]['Altitude [m]'];
 	final_data.shift();
@@ -121,10 +122,10 @@ export function plotter(
 	let colo_index = 0;
 	let line_dashes = ['solid', 'dash']
 	if (axis_layout) {
-		for (const plane in final_data) {
+		for (const plane in chosenplanes) {
 			let dash_index = 0
 			for (const mode in final_data[plane]) {
-				let plane_mode = plane + '(' + mode + ')'
+				let plane_mode = plane + ' (' + mode + ')'
 				final_object.push({
 					x: final_data[plane][mode],
 					y: alt_vals,
