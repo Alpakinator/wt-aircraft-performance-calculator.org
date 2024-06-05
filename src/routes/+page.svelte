@@ -12,6 +12,7 @@
   <meta property="og:description" content="Graphs of engine power and power/weight of all piston aircraft in War Thunder, at all altitudes.">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://wtapc.org/images/WTAPC_logo_1280.png">
+  
 
   <meta name="twitter:card" content="summary_large_image">
   <meta property="twitter:domain" content="wtapc.org">

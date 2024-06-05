@@ -122,7 +122,7 @@ export function plotter(
 	let colo_index = 0;
 	let line_dashes = ['solid', 'dash']
 	if (axis_layout) {
-		for (const plane in chosenplanes) {
+		for (const plane in final_data) {
 			let dash_index = 0
 			for (const mode in final_data[plane]) {
 				let plane_mode = plane + ' (' + mode + ')'
