@@ -30,9 +30,9 @@
 		<h1>What you should not do!</h1>
 		<ul>
 			<li>You should <b>not</b> use any of these graphs for bug reports, because this website is not a valid source. 
-				If you do, then your bug report will be rejected. <u>Moreover Gaijin bothered with such incorrect bug reports could take steps to restrict datamining,
+				If you do, then your bug report will be rejected. <u>Moreover, Gaijin bothered with such incorrect bug reports could take steps to restrict datamining,
 					which is a foundation of projects like this.</u></li>
-			<li>You should not use any of these graphs as 100% certain truth about aircraft performance in War Thunder. For sure there are some mistakes in this website, despite the fact if was validated for ~40 planes.</li>
+			<li>You should not use any of these graphs as 100% certain truth about aircraft performance in War Thunder. For sure there are some mistakes in this website, despite the fact if was validated for ~40 planes with 99-101% accuracy.</li>
 		</ul>
 		<br /><hr>
 		<h1>What can you do with Power/Weight graphs alone?</h1>
@@ -70,7 +70,7 @@
 		Which P-51 is best relative to their Br?
 		<br /><br />
 		<h3>Checking:</h3>
-		Select All US tree P-51s. Give them all 30% fuel because that; the minimum you can choose in game and it's more than enough. 
+		Select All US tree P-51s. Give them all 30% fuel because it's the minimum you can choose in gaame and it's more than enough. 
 		You can leave speed at 300kph IAS - a typical dogfighting speed/ upper range of climb speeds. 
 		After you make the graph you'll see that that they differ quite a bit.
 		You can click on names of planes in the graph legend to hide them and click again to show them.
