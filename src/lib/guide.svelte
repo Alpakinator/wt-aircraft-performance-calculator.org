@@ -9,15 +9,33 @@
 
 		If you want to download the graph via 
 		<svg viewBox="0 0 1000 850" class="icon" height="1em" width="1em"><path d="m500 450c-83 0-150-67-150-150 0-83 67-150 150-150 83 0 150 67 150 150 0 83-67 150-150 150z m400 150h-120c-16 0-34 13-39 29l-31 93c-6 15-23 28-40 28h-340c-16 0-34-13-39-28l-31-94c-6-15-23-28-40-28h-120c-55 0-100-45-100-100v-450c0-55 45-100 100-100h800c55 0 100 45 100 100v450c0 55-45 100-100 100z m-400-550c-138 0-250 112-250 250 0 138 112 250 250 250 138 0 250-112 250-250 0-138-112-250-250-250z m365 380c-19 0-35 16-35 35 0 19 16 35 35 35 19 0 35-16 35-35 0-19-16-35-35-35z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
-		make sure you have Inter font installed on your machine. Otherwise the font will be ugly due to limitations of the website. Alternatively just take screeenshots.
-		If you dislike many hoverboxes when you hover over the graph
-		you can switch from this:
+		make sure you have <a href="https://fonts.google.com/specimen/Inter"
+		title="Webiste to download Inter font from">Inter</a> font installed on your machine. Otherwise the font will be ugly. Alternatively I recommend taking screeenshots:
+		<ul>
+			<li><b>Windows:</b>  Win + Shift + S</li>
+			<li><b>Mac:</b> Shift + Command + 4</li>
+			<li><b>Linux:</b> you need to have a screenshotting program</li>
+			<li><b>Firefox or Edge:</b>  right click and choose 'Take Screenshot' from the dropdown</li>
+			<li><b>Brave:</b> Click 'Share' icon next to URL bar, then click 'Screenshot'</li>
+			<li><b>Chrome:</b> Ctrl + Shift + I and an inspect window will open. Then Ctrl + Shift + P, and in the search bar type screenshot,'capture are screenshot'.</li>
+		</ul>
+		If you dislike many hoverboxes when you hover over the graph you can switch from this:
 		<svg viewBox="0 0 1125 1000" class="icon" height="1em" width="1em"><path d="m187 786l0 2-187-188 188-187 0 0 937 0 0 373-938 0z m0-499l0 1-187-188 188-188 0 0 937 0 0 376-938-1z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
 		to this option:
 		<svg viewBox="0 0 1500 1000" class="icon" height="1em" width="1em"><path d="m375 725l0 0-375-375 375-374 0-1 1125 0 0 750-1125 0z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
-		<br /><br />
+		. 
+		<br /><br /><hr>
+
+
+		<h1>What you should not do!</h1>
+		<ul>
+			<li>You should <b>not</b> use any of these graphs for bug reports, because this website is not a valid source. 
+				If you do, then your bug report will be rejected. <u>Moreover Gaijin bothered with such incorrect bug reports could take steps to restrict datamining,
+					which is a foundation of projects like this.</u></li>
+			<li>You should not use any of these graphs as 100% certain truth about aircraft performance in War Thunder. For sure there are some mistakes in this website, despite the fact if was validated for ~40 planes.</li>
+		</ul>
+		<br /><hr>
 		<h1>What can you do with Power/Weight graphs alone?</h1>
-		<br />
 		<h2>
 		1. Find altitudes at which you have the highest chance of winning an energy fight or running.
 		</h2>
@@ -33,11 +51,10 @@
 		Enter the Calculator in another tab. Click on 'Click and type' search bar. Select Bf 109 G-2 and
 		Spitfire F Mk IX. Give G-2 25% and Spitfire 40% fuel as that's their typical fuel 5-10min into the
 		game. Choose a speed of 550kph TAS. Then click on 'Make a Graph' button.<br /><br />
-		You'll see a graph where G-2 has higher power/weight than the Spitfire up to 8000m. However, you'll
-		notice they are actually close at 4500m. That's where the Spitfire reached the critical altitude of
-		its 1st supercharger gear and only stared to lose power. The situation looks much better at around 6km and also 3km.
-    But consider that the actual fight will not happen at 600kph TAS but likely around in 150-400kph IAS range.
-    So, if you remake the graph with 300kph IAS you'll notice everything moved down by ~500m at high altitude and by ~1000m at low altitude.
+		You'll see a graph where G-2 has higher power/weight than the Spitfire up to 8000m. However, they're actually close at 4500m. That's where the Spitfire reached the critical altitude of
+		its 1st supercharger gear and only started to lose power. The situation looks much better at around 6km and also 3km.
+    	But the actual fight will not happen at 600kph TAS band likely around in 150-400kph IAS.
+    	So, on a graph with 300kph IAS you'll notice everything moved down by ~500m at high altitude and by ~1000m at low altitude.
 		It's because previously high speed increased critical altitudes via air ram effect, so keep that in mind.
 		<br /><br />
 		<h3>Conclusion:</h3>
@@ -45,6 +62,7 @@
 		At low speed 5000 - 5900m is optimal, not higher. Alternatively you can dive and try to engage at
 		2000-3000m
 		<br /><br />
+
     <h2>2. Choose between similar planes:</h2>
     <h3>Example:</h3>
     You're grinding P-51 tree and deciding which ones to play and which ones to skip. They all have similar airframe aerodynamics and propeller efficiencies.
@@ -60,10 +78,9 @@
 		<h3>Conclusion:</h3>
     <ul>
       <li>P-51 - Bad power/weight, and starts losing power at 2km already. However at 3.7 it has great cannons and it's pretty fast so it's an mediocre choice.</li>
-      <li>P-51C-10 - By far the best power/weight relative to its Br aut of all P-51s. 
-        It's the best choice performance wise especialy since it's the most lightweight, so it dogfights decently.</li> 
+      <li>P-51C-10 - By far the best power/weight relative to its Br aut of all P-51s. Also it's most lightweight, so it dogfights decently.</li> 
       <li>P-51D-5 and D-20 - A bad power to weight for 4.0 br. Definitely the worst P-51s to fly in.</li>
-      <li> P-51D-10 - A good increase in power/weight over D-5. A very good choice.</li>
+      <li>P-51D-10 - A good increase in power/weight over D-5. A very good choice.</li>
       <li>P-51D-30 - A nice increase over D-10 but it's not worth the 0.7 Br increase. A good choice.</li>
       <li>P-51H-5 - Yup, a huge difference in performance over all P-51s. Very good pick even for a 6.3 Br.</li>
     </ul>
@@ -71,6 +88,7 @@
 	The difference on the graphs is larger than ingame climb rate difference. 
 	The reason is; P-51s have great propeller efficiency compared to La-7, Bf 109 or Ki-84, which remedies their sub-par power/weight. This is explored below:
 
+	<br /><br /><hr>
   <h1>What can you do with power/weight graphs with context?</h1>
 		<h2>Choose between quite different planes.</h2>
 		<h3>Example:</h3>
@@ -82,8 +100,7 @@
 		<br /><br />
 		<h3>Checking:</h3>
 		Select Bf 109 G-6 and VL Pyörremyrsky. Give Pyörremyrsky 32% and G-6 42% fuel because then they have similar flight time. 
-		You can leave speed at 290kph IAS - a upper range of climb speeds - more optimal for G-6 than Pyörremyrsky. 
-    	When you make a power/weight graph you will notice that G-6 has significantly higher power/weight than Pyörremyrsky up to 5km. 
+		You can leave speed at 290kph IAS and make a graph. On it you will notice that G-6 has significantly higher power/weight than Pyörremyrsky up to 5km. 
 		So you might say "Oh wow, G-6 must climb so much better!". Unfortunately no, because Pyörremyrsky has a much more efficient propeller. 
 		To clarify this, take a look at these 4 graphs:
 		<img id="prop_eff_graph" src="/images/g-6_vs_pyo.png" alt="Graph of power/weight, prop efficiency, thrust/weight and climb rate of Bf 109 G-6 and VL Pyoremyrrsky" />
@@ -104,15 +121,8 @@
 		Aerodynamics too. 
 		You'll notice that some biplanes have better power/weight than high Br props. 
 		It is true, but because biplanes have worse propellers and more draggy airframes they in fact climb and accelerate worse.
-		
-	<h1>What you should NOT do!</h1>
-		<ul>
-			<li>You should not use any of these graphs as 100% certain truth about aircraft performance in War Thunder. For sure there are some mistakes in this website, despite the fact if was validated for ~40 planes.</li>
-			<li>You should not use any of these graphs for bug reports, because this website is not a valid source. 
-				If you do, then your bug report will be rejected. Moreover Gajin bothered with such incorrect bug reports could take steps to restrict datamining,
-				which is a foundation of projects like this. </li>
-		</ul>
-
+		<br /><br />
+		<hr>
 
 			<!-- However you can use these graphs to detect potential historical inaccuracies. 
 			Then you must collect the same data yourself from a test flight in game. 
@@ -175,6 +185,7 @@
 	}
 	#use_example {
 		text-align: left;
+		font-weight: 300;
 	}
 	#prop_eff_graph {
 		width: 100%;

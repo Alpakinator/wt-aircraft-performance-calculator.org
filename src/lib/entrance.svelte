@@ -7,7 +7,7 @@
 	>
 	<a id="calculator_link" href="/calculator">
 		<img src="/images/plot_icon.png" id="graph_img" alt="Icon of an example power plot" />
-		<span id="calc_text">Enter</span>
+		<span id="calc_text">Calculator</span>
 	</a>
 </div>
 

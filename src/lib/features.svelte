@@ -19,22 +19,19 @@
       <span>😑Aircraft Lift</span>
       <span>😑Climb rates</span>
       <span>😑Top speeds</span>
-      <span>😑Aicraft dynamics</span>
+      <span>😑Aircraft dynamics</span>
       <span>😑Energy Maneuverability (EM)</span>
 
     </div>
     <div class=table_col>
       <span>😑3D graphs</span>
       <span>😑4D Graphs</span>
-      <span>😑Graphs of differences between planes</span>
+      <span>😑Ranked plane lists based on performance and Br</span>
       <span>😑Comparing the same plane with different fuel loads</span>
       <span>😑Choosing modifications and payloads</span>
-      <span>😑Engine settings below 100% throttle</span>
+      <span>😑Different radiator settings</span>
       <span>😑Uploading your own logs for comparing</span>
       <span>😑Better UI for mobile</span>
-      <span></span>
-      <span></span>
-      <span></span>
     </div>
 </div>
 

@@ -49,7 +49,10 @@
 
 	let hoverstyle = 'x';
 	function form_into_graph_maker() {
-		if (chosenplanes.length === 0){
+		console.log(power_modes)
+		if (chosenplanes.length === 0 || power_modes.length < 1 || speed_type == null 
+		|| speed > 1000 || speed < 0 ||max_alt > 20000 || 200 < air_temp ||air_temp < -100 
+		|| fuel_percents.some((element) => element > 100 || fuel_percents.some((element) => element < 0))){
 			return
 		}
 		let speedkph = speed;
