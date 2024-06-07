@@ -24,6 +24,7 @@
 		to this option:
 		<svg viewBox="0 0 1500 1000" class="icon" height="1em" width="1em"><path d="m375 725l0 0-375-375 375-374 0-1 1125 0 0 750-1125 0z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
 		. 
+		If you wish to compre WTAPC engine power to actual engine pwoer in WT, use WTR 
 		<br /><br /><hr>
 
 
@@ -50,9 +51,12 @@
 		<h3>Checking:</h3>
 		Enter the Calculator in another tab. Click on 'Click and type' search bar. Select Bf 109 G-2 and
 		Spitfire F Mk IX. Give G-2 25% and Spitfire 40% fuel as that's their typical fuel 5-10min into the
-		game. Choose a speed of 550kph TAS. Then click on 'Make a Graph' button.<br /><br />
-		You'll see a graph where G-2 has higher power/weight than the Spitfire up to 8000m. However, they're actually close at 4500m. That's where the Spitfire reached the critical altitude of
-		its 1st supercharger gear and only started to lose power. The situation looks much better at around 6km and also 3km.
+		game. Choose a speed of 550kph TAS. Then click on 'Make a Graph' button and you will see this:<br />
+
+		<img id="prop_eff_graph" src="/images/g-2_vs_spit.png" alt="Graph of power/weight of Bf 109 G-2 and Spitfire F Mk IX" />
+		
+		G-2 has higher power/weight than the Spitfire up to 8000m. However, they're actually close at 4500m. That's where the Spitfire reached the critical altitude of
+		its 1st supercharger stage and only started to lose power. The situation looks much better at around 6km and also 3km.
     	But the actual fight will not happen at 600kph TAS band likely around in 150-400kph IAS.
     	So, on a graph with 300kph IAS you'll notice everything moved down by ~500m at high altitude and by ~1000m at low altitude.
 		It's because previously high speed increased critical altitudes via air ram effect, so keep that in mind.
@@ -105,13 +109,13 @@
 		To clarify this, take a look at these 4 graphs:
 		<img id="prop_eff_graph" src="/images/g-6_vs_pyo.png" alt="Graph of power/weight, prop efficiency, thrust/weight and climb rate of Bf 109 G-6 and VL Pyoremyrrsky" />
 		
-		The all of them were collected in game, while climbing in both aircraft at 290 kph IAS in test flight. 
+		The all of them were collected in game thanks to <a href="https://mesofthorny.github.io/WTRTI/" ><b>WTRTI</b></a>, while climbing in both aircraft at 290 kph IAS in test flight. 
 		The power/weight is identical to the one from the calculator.
 		<br /><br />
 		You can clearly see that Bf 109 G-6 indeed climbs better than Pyörremyrsky up to 5km, but only slighly. The advantage is much smaller than power/weight would suggest. 
 		However, now compare climb rate with thrust/weight and you'll see these graphs look similar. 
 		It's because thrust/weight is the actual force that pulls the aircraft forward - it takes into accunt propeller efficiency and speed.
-		That's why the next goal for WTAPC is to implement propeller efficiency and thrust/weight.
+		That's why the next goal for WTAPC is to implement propeller efficiency and thrust/weight. 
 		<br /><br />
 		<h3>Conclusion:</h3>
 		VL Pyörremyrsky is better plane for it's Br than Bf 109 G-6 as it climbs better at high altitude and is more maneuverable.

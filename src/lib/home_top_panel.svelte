@@ -49,6 +49,7 @@
 		position: relative;
 		display: flex;
 		max-height: 6rem;
+		max-width: 6rem;
 		aspect-ratio: 1;
 		margin-right: 0.5rem;
 		margin-bottom: 0.5rem;
