@@ -162,7 +162,6 @@ export function plotter(
 				speed_type;
 			highest_x = Math.max(...all_values);
 			lowest_x = Math.min(...all_values);
-			// console.log(highest_x, lowest_x)
 			highest_x = Math.ceil((highest_x + 100) / 100) * 100;
 			lowest_x = Math.floor((lowest_x - 100) / 100) * 100;
 			x_axis_title = 'Power [hp]';
