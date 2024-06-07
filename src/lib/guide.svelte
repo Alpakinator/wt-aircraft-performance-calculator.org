@@ -105,13 +105,13 @@
 		To clarify this, take a look at these 4 graphs:
 		<img id="prop_eff_graph" src="/images/g-6_vs_pyo.png" alt="Graph of power/weight, prop efficiency, thrust/weight and climb rate of Bf 109 G-6 and VL Pyoremyrrsky" />
 		
-		The graphs except power/weight were collected in game, while climbing in both aircraft at 290 kph IAS in test flight. 
-		The power/weight graph was made with WTAPC and it matches power/weight from test flight perfectly.
+		The all of them were collected in game, while climbing in both aircraft at 290 kph IAS in test flight. 
+		The power/weight is identical to the one from the calculator.
 		<br /><br />
 		You can clearly see that Bf 109 G-6 indeed climbs better than Pyörremyrsky up to 5km, but only slighly. The advantage is much smaller than power/weight would suggest. 
 		However, now compare climb rate with thrust/weight and you'll see these graphs look similar. 
 		It's because thrust/weight is the actual force that pulls the aircraft forward - it takes into accunt propeller efficiency and speed.
-		That's why the next goal for WTAPC is to implement propeller efficiency and thrust/weight. Thrust/weight takes propeller efficiency into account.
+		That's why the next goal for WTAPC is to implement propeller efficiency and thrust/weight.
 		<br /><br />
 		<h3>Conclusion:</h3>
 		VL Pyörremyrsky is better plane for it's Br than Bf 109 G-6 as it climbs better at high altitude and is more maneuverable.
