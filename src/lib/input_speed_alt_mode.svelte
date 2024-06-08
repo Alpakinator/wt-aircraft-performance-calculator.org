@@ -88,7 +88,7 @@
 				style="width:5ch"
 				bind:value={max_alt}
 				min="0"
-				max="20000"
+				max="80000"
 			/>
 		</label>
 		&nbsp
@@ -114,8 +114,8 @@
 				type="number"
 				style="width:3ch"
 				bind:value={air_temp}
-				min="0"
-				max="100"
+				min= "-200"
+				max= "1000"
 			/>
 		</label>
 		&nbsp

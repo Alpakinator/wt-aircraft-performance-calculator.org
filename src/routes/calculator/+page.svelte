@@ -51,10 +51,10 @@
 	function form_into_graph_maker() {
 		console.log(power_modes)
 		if (chosenplanes.length === 0 || power_modes.length < 1 || speed_type == null 
-		|| speed > 1000 || speed < 0 ||max_alt > 20000 || 200 < air_temp ||air_temp < -100 
 		|| fuel_percents.some((element) => element > 100 || fuel_percents.some((element) => element < 0))){
 			return
 		}
+
 		let speedkph = speed;
 		if (speed_unit === 'mph') {
 			speedkph = Math.round(speed * 1.609344);
@@ -77,6 +77,11 @@
 		}
 		let named_power_curves_merged: { [key: string]: { [key: string]: { [key: number]: number } } } =
 			{}; // Initialize outside the loop
+
+		if (speedkph > 1000 || speedkph < 0 ||max_altm > 20000 || 200 < air_tempC ||air_tempC < -100 ){
+			return
+		}
+
 		let all_values:any = [];
 		let planejsons: any = {};
 		let masses: any = {};
