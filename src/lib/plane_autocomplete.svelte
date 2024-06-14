@@ -3,6 +3,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import central_ingame_planes from '$lib/central-ingame_plane_names_piston_arr.json';
+	import image_names from '$lib/vehicle_image_names.json';
 	import Svelecte from 'svelecte';
 	export let chosenplanes;
 	export let chosenplanes_ingame;
@@ -18,6 +19,8 @@
 	};
 
 	$: chosenplanes_ingame = PlaneIDsToNamesmapper(chosenplanes);
+
+	
 	function ingame_icon_maker(plane) {
 		var optionText = plane.name;
 		
@@ -37,7 +40,12 @@
 			optionText = plane.name + ' INACCURATE!';
 		}
 		// var backgrimageUrl = "images/item_own_2.png";
-		var planeimageUrl = 'images/plane_images/' + plane.id + '.png';
+
+		if(image_names.includes(plane.id + '.png')){
+			var planeimageUrl = 'images/plane_images/' + plane.id + '.png';
+		}else{
+			var planeimageUrl = 'images/unknown_plane.png';
+		}
 		// Create WT icon for each plane
 		var wt_comp_icon =
 			'<div class="WT_icon" style = "position: relative; background-color: #2F3E49; width: 11rem; aspect-ratio: 1/0.309878; height: auto;"/>' +
@@ -52,6 +60,9 @@
 			'</div>';
 		return wt_comp_icon;
 	}
+
+
+
 	/** @typedef {object} SearchProps
 	 *  @property {boolean} [wordsOnly]
 	 */
@@ -64,7 +75,7 @@
 </script>
 
 <div class="autocomplete_panel">
-	<grid-item id="autocomplete_title">Planes to plot: </grid-item>
+	<grid-item id="autocomplete_title">Planes: </grid-item>
 
 	<grid-item id="plane_autocomplete">
 		<Svelecte
@@ -72,7 +83,7 @@
 			multiple
 			renderer={ingame_icon_maker}
 			options={central_ingame_planes}
-			placeholder="Search by typing"
+			placeholder="Search planes by typing"
 			resetOnSelect={false}
 			max={20}
 			keepSelectionInList={false}
@@ -109,11 +120,12 @@
 	:global(.sv-input--sizer.svelte-hi60qz) {
 		outline: 0.15rem solid transparent;
 		transition: outline-color 0.3s;
+		font-size: 90%;
 	}
 	input:focus,
 	input:hover,
 	:global(.sv-item--content:hover),
-	:global(.sv-input--sizer.svelte-hi60qz:hover) {
+	:global(.sv-input--sizer.svelte-hi60qz:hover), :global(svelecte.plane-names.svelte-hi60qz.is-valid.is-tainted.is-empty:hover) {
 		outline: 0.15rem solid #006fa1;
 	}
 

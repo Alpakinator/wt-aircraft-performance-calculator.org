@@ -7,6 +7,7 @@
 
 [**wtapc.org**](https://www.wtapc.org) - Web app for generating graphs of engine power and power/weight of all piston aircraft in War Thunder, at all altitudes.
 ---
+v.1.0.0
 <h3>Current features:</h3>
 <ol>
 <li>Piston Engine Power</li>

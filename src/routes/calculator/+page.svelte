@@ -48,6 +48,17 @@
 	];
 
 	let hoverstyle = 'x';
+
+	function rename_duplicates(chosenplanes_ingame) {
+    const counts = {};
+    return chosenplanes_ingame.map(str => {
+        const count = counts[str] || 2;
+        counts[str] = count + 1;
+        return count > 2 ? `${str}_${count - 1}` : str;
+    });
+	}
+
+
 	function form_into_graph_maker() {
 		console.log(power_modes)
 		if (chosenplanes.length === 0 || power_modes.length < 1 || speed_type == null 
@@ -145,22 +156,24 @@
 
 		Promise.allSettled(promises).then(() => {
 			console.log(planejsons, chosenplanes)
+			const chosenplanes_ingame_dup = rename_duplicates(chosenplanes_ingame)
 			for (let file_name in planejsons) {
 				let central_name = file_name.substring(0, file_name.lastIndexOf('_'));
 				let index = chosenplanes.findIndex((x) => x === central_name);
 				let power_curves_merged = {};
 				let mode = file_name.slice(file_name.lastIndexOf('_') + 1);
 				let speed_mult = planejsons[file_name]['speed_mult'];
-				let ingame_name: string = chosenplanes_ingame[index];
+				let ingame_name: string = chosenplanes_ingame_dup[index];
 				let power_merged_str_noram = planejsons[file_name]['power_at_alt'];
 				if (performance_type === 'power') {
 					for (let alt = 0; alt < max_altm; alt += 25) {
 						let alt_RAM = rameffect_er(alt, air_tempC, speedkph, speed_type, speed_mult);
 						power_curves_merged[Math.round(alt * alt_factor)] =
 							power_merged_str_noram[Math.round(alt_RAM / 10) + 400];
+						all_values.push(power_merged_str_noram[Math.round(alt_RAM / 10) + 400])
 					}
 				} else if (performance_type === 'power/weight') {
-					ingame_name = ingame_name + ' [' + fuel_percents[index] + '%]';
+					ingame_name = ingame_name + ' [' + fuel_percents[index] + '%] ';
 					let total_mass =
 						masses[central_name]['empty_mass'] +
 						masses[central_name]['max_fuel_mass'] * (fuel_percents[index] / 100) +

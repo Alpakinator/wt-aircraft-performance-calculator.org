@@ -5,28 +5,6 @@
 <div id="guide_whole">
 	<span id="guide_title">Guide👇</span> <br />
 	<span id="use_example">
-		<h1>Tips on the interface</h1>
-
-		If you want to download the graph via 
-		<svg viewBox="0 0 1000 850" class="icon" height="1em" width="1em"><path d="m500 450c-83 0-150-67-150-150 0-83 67-150 150-150 83 0 150 67 150 150 0 83-67 150-150 150z m400 150h-120c-16 0-34 13-39 29l-31 93c-6 15-23 28-40 28h-340c-16 0-34-13-39-28l-31-94c-6-15-23-28-40-28h-120c-55 0-100-45-100-100v-450c0-55 45-100 100-100h800c55 0 100 45 100 100v450c0 55-45 100-100 100z m-400-550c-138 0-250 112-250 250 0 138 112 250 250 250 138 0 250-112 250-250 0-138-112-250-250-250z m365 380c-19 0-35 16-35 35 0 19 16 35 35 35 19 0 35-16 35-35 0-19-16-35-35-35z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
-		make sure you have <a href="https://fonts.google.com/specimen/Inter"
-		title="Webiste to download Inter font from">Inter</a> font installed on your machine. Otherwise the font will be ugly. Alternatively I recommend taking screeenshots:
-		<ul>
-			<li><b>Windows:</b>  Win + Shift + S</li>
-			<li><b>Mac:</b> Shift + Command + 4</li>
-			<li><b>Linux:</b> you need to have a screenshotting program</li>
-			<li><b>Firefox or Edge:</b>  right click and choose 'Take Screenshot' from the dropdown</li>
-			<li><b>Brave:</b> Click 'Share' icon next to URL bar, then click 'Screenshot'</li>
-			<li><b>Chrome:</b> Ctrl + Shift + I and an inspect window will open. Then Ctrl + Shift + P, and in the search bar type screenshot,'capture are screenshot'.</li>
-		</ul>
-		If you dislike many hoverboxes when you hover over the graph you can switch from this:
-		<svg viewBox="0 0 1125 1000" class="icon" height="1em" width="1em"><path d="m187 786l0 2-187-188 188-187 0 0 937 0 0 373-938 0z m0-499l0 1-187-188 188-188 0 0 937 0 0 376-938-1z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
-		to this option:
-		<svg viewBox="0 0 1500 1000" class="icon" height="1em" width="1em"><path d="m375 725l0 0-375-375 375-374 0-1 1125 0 0 750-1125 0z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
-		. 
-		If you wish to compre WTAPC engine power to actual engine pwoer in WT, use WTR 
-		<br /><br /><hr>
-
 
 		<h1>What you should not do!</h1>
 		<ul>
@@ -127,7 +105,29 @@
 		It is true, but because biplanes have worse propellers and more draggy airframes they in fact climb and accelerate worse.
 		<br /><br />
 		<hr>
+		<h1>Tips on the interface</h1>
+		You can zoom with mouse scroll and pan the graph with LMB. You can squeeze the axes by pulling an axis from the corner towards the center of the axis. 
+		If you dislike many hoverboxes when you hover over the graph you can switch from this:
+		<svg viewBox="0 0 1125 1000" class="icon" height="1em" width="1em"><path d="m187 786l0 2-187-188 188-187 0 0 937 0 0 373-938 0z m0-499l0 1-187-188 188-188 0 0 937 0 0 376-938-1z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
+		to this option:
+		<svg viewBox="0 0 1500 1000" class="icon" height="1em" width="1em"><path d="m375 725l0 0-375-375 375-374 0-1 1125 0 0 750-1125 0z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
+		. 
 
+		If you want to download the graph via 
+		<svg viewBox="0 0 1000 850" class="icon" height="1em" width="1em"><path d="m500 450c-83 0-150-67-150-150 0-83 67-150 150-150 83 0 150 67 150 150 0 83-67 150-150 150z m400 150h-120c-16 0-34 13-39 29l-31 93c-6 15-23 28-40 28h-340c-16 0-34-13-39-28l-31-94c-6-15-23-28-40-28h-120c-55 0-100-45-100-100v-450c0-55 45-100 100-100h800c55 0 100 45 100 100v450c0 55-45 100-100 100z m-400-550c-138 0-250 112-250 250 0 138 112 250 250 250 138 0 250-112 250-250 0-138-112-250-250-250z m365 380c-19 0-35 16-35 35 0 19 16 35 35 35 19 0 35-16 35-35 0-19-16-35-35-35z" transform="matrix(1 0 0 -1 0 850)"></path></svg>
+		make sure you have <a href="https://fonts.google.com/specimen/Inter"
+		title="Webiste to download Inter font from">Inter</a> font installed on your machine. Otherwise the font will be ugly. Alternatively I recommend taking screeenshots:
+		<ul>
+			<li><b>Windows:</b>  Win + Shift + S</li>
+			<li><b>Mac:</b> Shift + Command + 4</li>
+			<li><b>Linux:</b> you need to have a screenshotting program</li>
+			<li><b>Firefox or Edge:</b>  right click and choose 'Take Screenshot' from the dropdown</li>
+			<li><b>Brave:</b> Click 'Share' icon next to URL bar, then click 'Screenshot'</li>
+			<li><b>Chrome:</b> Ctrl + Shift + I and an inspect window will open. Then Ctrl + Shift + P, and in the search bar type screenshot,'capture are screenshot'.</li>
+		</ul>
+		<!-- If you wish to compare WTAPC engine power to actual engine power in WT, use WTRTI.  -->
+		<br />
+		<hr>
 			<!-- However you can use these graphs to detect potential historical inaccuracies. 
 			Then you must collect the same data yourself from a test flight in game. 
 			If data collected in game is correct historically then this website must've been incorrect, so please report such problems on our Discord server.

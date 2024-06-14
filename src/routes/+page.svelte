@@ -25,8 +25,7 @@
   <Home_Top_panel/> 
   <Entrance/>
   <Features/>
-  <Guide/>
-  
+
   <div id="footer">
     <span>Copyright © 2024 Alpakinator. All Rights Reserved.</span><br/>
     <span>Made with SvelteKit</span>
@@ -42,11 +41,11 @@
     align-items: center;
     text-align: center;
     padding-top: 0.5rem;
-    max-width: 90rem;
+    /* max-width: 140; */
     margin-left: auto;
     margin-right: auto;
-    padding-left: 2rem;
-    padding-right: 2rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
     
   }
 

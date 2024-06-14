@@ -19,7 +19,7 @@
 <div class="button-panel">
 	<a id="home_button" href="/">
 		<img src="/images/WTAPC_logo_1280.png" alt="WTAPC logo with Home written on top" />
-		<span id="home_text">Home</span>
+		<span id="home_text"></span>
 	</a>
 
 	<!-- <select class ='dimen_button' bind:value={graph_d}>
@@ -40,7 +40,7 @@
 
 	<button id="post-form-button" on:click={handleClick}>
 		<img src="/images/plot_icon.png" alt="Icon of an example power plot" />
-		<span id="calculate_text">Make&nbspa<br />Graph</span>
+		<span id="calculate_text">Calculate<br />a Graph</span>
 	</button>
 </div>
 

@@ -3,12 +3,26 @@
 	<!-- <span id='catchphrase_body'>Calculated, flight model based info on<br/>aircraft performance in War Thunder</span> -->
 	<span id="catchphrase_body">Performance calculated<br /> from flight models. </span>
 	<span id="catchphrase_footer"
-		>If you haven't, check out a guide below<br /> before you enter.</span
+		>If you haven't, check out the guide.</span
 	>
-	<a id="calculator_link" href="/calculator">
-		<img src="/images/plot_icon.png" id="graph_img" alt="Icon of an example power plot" />
-		<span id="calc_text">Calculator</span>
-	</a>
+	<div  id="link_buttons">
+		<a class = link-button id="calculator_link" href="/calculator">
+			<img src="/images/plot_icon.png" id="graph_img" alt="Icon of an example power plot" />
+			<span id="calc_text">Enter the Calculator</span>
+		</a>
+		<a class = link-button id="guide_link" href="/guide">
+			<img src="/images/guide_template.png" id="graph_img" alt="Cover page of a rools royce merlin engine" />
+			<span id="guide_text">Enter the Guide</span>
+		</a>
+	</div>
+	<!-- <div  id="link_buttons">
+		<a class = link-button2 id="calculator_link2" href="/calculator">
+			<span id="calc_text2">Enter the Calculator</span>
+		</a>
+		<a class = link-button2 id="guide_link2" href="/guide">
+			<span id="calc_text2">Enter the Guide</span>
+		</a>
+	</div> -->
 </div>
 
 <style>
@@ -18,19 +32,34 @@
 		row-gap: 0.4rem;
 		justify-content: center;
 		align-items: center;
-		margin-bottom: 2rem;
+		margin-bottom: 4rem;
+	}
+	#link_buttons{
+		display: flex;
+		column-gap: 4rem;
 	}
 	#calc_text {
 		position: absolute;
 		font-size: 1.2rem;
 		bottom: 0%;
 		left: 50%;
-		height: 3rem;
+		/* height: 3rem; */
 		transform: translateX(-50%);
 		color: #fdfdfde6;
 		text-decoration: none;
 		width: 100%;
-		background: #1e262e;
+		/* background: #c50000; */
+	}
+	#guide_text{
+		position: absolute;
+		font-size: 1.2rem;
+		bottom: 42%;
+		left: 50%;
+		/* height: 3rem; */
+		transform: translateX(-50%);
+		color: #ffffff;
+		text-decoration: none;
+		width: 80%;
 	}
 	#catchphrase_title {
 		font-variation-settings: 'wght' 700;
@@ -46,25 +75,61 @@
 	}
 	#graph_img {
 		width: 100%;
+		object-fit: cover;
+		object-position: 50% 0%;
 	}
-	#graph_img:hover {
-		filter: brightness(1.6);
-		box-shadow: 0 0 2rem 1rem rgba(255, 255, 255, 0.03);
-	}
-	#calculator_link:hover {
+	.link-button:hover
+	/* ,.link-button2:hover */
+	  {
 		text-shadow:
 			0 0 7px rgb(248, 254, 190),
 			0 0 122px rgb(236, 232, 173);
 	}
 	#calculator_link {
+		border: 0.15rem solid #c50000;
+		/* cursor: pointer; */
+	}
+	#guide_link {
+		border: 0.15rem solid #0061c2;
+		/* background: #0061c2; */
+		/* cursor: pointer; */
+	}
+	.link-button{
 		position: relative;
 		text-align: center;
 		display: flex;
 		width: 7rem;
 		aspect-ratio: 1;
+		margin-top: 2rem;
 		margin-right: 0.5rem;
-		margin-bottom: 0.5rem;
-		border: 0.3rem outset #1e262e;
-		/* cursor: pointer; */
+
 	}
+	/* .link-button2{
+		position: relative;
+		text-align: center;
+		display: flex;
+		width: 12rem;
+		aspect-ratio: 4;
+		margin-top: 2rem;
+		margin-right: 0.5rem;
+		background: #0080ffc7;
+	}
+	#guide_link2{
+		background: #ff0000ce;
+	}
+
+	#calculator_link2{
+		background: #0080ffc7;
+	} */
+
+	/* #calc_text2{
+		position: absolute;
+		font-size: 1.2rem;
+		bottom: 25%;
+		left: 50%;
+		transform: translateX(-50%);
+		color: #fdfdfde6;
+		text-decoration: none;
+		width: 100%;
+	} */
 </style>

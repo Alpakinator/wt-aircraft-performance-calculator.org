@@ -162,8 +162,10 @@ export function plotter(
 				speed_type;
 			highest_x = Math.max(...all_values);
 			lowest_x = Math.min(...all_values);
+			console.log('here they are', lowest_x, highest_x, all_values)
 			highest_x = Math.ceil((highest_x + 100) / 100) * 100;
 			lowest_x = Math.floor((lowest_x - 100) / 100) * 100;
+			if(lowest_x<0){lowest_x=0}
 			x_axis_title = 'Power [hp]';
 			x_axis_tick = 100;
 			lowest_y = 0;
@@ -185,6 +187,7 @@ export function plotter(
 			lowest_x = Math.min(...all_values);
 			highest_x += 0.03;
 			lowest_x -= 0.03;
+			if(lowest_x<0){lowest_x=0}
 			x_axis_title = 'Power/Weight [hp/kg]';
 			x_axis_tick = 0.05;
 			lowest_y = 0;
@@ -238,6 +241,7 @@ export function plotter(
 			lowest_y = Math.min(...all_values);
 			highest_y = Math.ceil((highest_y + 100) / 100) * 100;
 			lowest_y = Math.floor((lowest_y - 100) / 100) * 100;
+			if(lowest_y<0){lowest_y=0}
 			y_axis_title = 'Power [hp]';
 			y_axis_tick = 100;
 			lowest_x = 0;
@@ -257,10 +261,9 @@ export function plotter(
 				speed_type;
 			highest_y = Math.max(...all_values);
 			lowest_y = Math.min(...all_values);
-			// highest_y = Math.max(...final_data.flatMap((plane) => Object.values(plane)).flat());
-			// lowest_y = Math.min(...final_data.flatMap((plane) => Object.values(plane)).flat());
 			highest_y += 0.03;
 			lowest_y -= 0.03;
+			if(lowest_y<0){lowest_y=0}
 			y_axis_title = 'Power/Weight [hp/kg]';
 			y_axis_tick = 0.05;
 			lowest_x = 0;
@@ -298,8 +301,10 @@ export function plotter(
 			color: '#fdfdfde6',
 			activecolor: '#006FA1',
 			font: { size: 24 },
-			add: ['hoverclosest', 'hovercompare']
+			add: ['hoverclosest', 'hovercompare'],
+			remove: ['autoscale'],
 		},
+		dragmode: 'pan',
 		annotations: [
 			{
 				text: air_temp_info,
@@ -364,6 +369,7 @@ export function plotter(
 		]
 	};
 	var config = {
+		scrollZoom: true,
 		displayModeBar: true,
 		displaylogo: false,
 		responsive: true,
