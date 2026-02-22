@@ -1,0 +1,1 @@
+export const DEFAULT_FUEL_PERCENT = 30;

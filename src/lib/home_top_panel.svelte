@@ -1,6 +1,6 @@
 <div class="button-panel">
 	<a id="home_img" href="/">
-		<img src="/images/WTAPC_logo_1280.png" alt="WTAPC logo with Home written on top" />
+		<img src="images/WTAPC_logo_1280.png" alt="WTAPC logo with Home written on top" />
 	</a>
 	<span id="the_title">War Thunder Aircraft Performance Calculator</span>
 
@@ -11,7 +11,7 @@
 		target="_blank"
 		rel="noopener noreferrer"
 	>
-		<img id="discord_icon" src="/images/discord-mark-white.svg" alt="discord logo" />
+		<img id="discord_icon" src="images/discord-mark-white.svg" alt="discord logo" />
 	</a>
 
 	<a
@@ -21,7 +21,7 @@
 		target="_blank"
 		rel="noopener noreferrer"
 	>
-		<img id="github_icon" src="/images/github-mark-white.svg" alt="github logo" />
+		<img id="github_icon" src="images/github-mark-white.svg" alt="github logo" />
 	</a>
 
 	<!-- "WTAPC_discord.png" -->

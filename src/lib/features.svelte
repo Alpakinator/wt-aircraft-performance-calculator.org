@@ -14,7 +14,7 @@
     </div>
     <div class=table_col>
       <span>😑Specific Excess Power (SEP)</span>
-      <span>😑Jet Thrust and T/W</span>
+      <span>😎Jet Thrust and T/W</span>
       <span>😑Aircraft Drag</span>
       <span>😑Aircraft Lift</span>
       <span>😑Climb rates</span>
@@ -24,14 +24,14 @@
 
     </div>
     <div class=table_col>
-      <span>😑3D graphs</span>
+      <span>🤔3D graphs</span>
       <span>😑4D Graphs</span>
       <span>😑Ranked plane lists based on performance and Br</span>
       <span>😑Comparing the same plane with different fuel loads</span>
       <span>😑Choosing modifications and payloads</span>
       <span>😑Different radiator settings</span>
       <span>😑Uploading your own logs for comparing</span>
-      <span>😑Better UI for mobile</span>
+      <span>🤔Better UI for mobile</span>
     </div>
 </div>
 

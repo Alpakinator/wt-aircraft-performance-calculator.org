@@ -1,35 +1,47 @@
 <script lang="ts">
 	import Plane_autocomplete from '$lib/plane_autocomplete.svelte';
-	import { form_into_graph_maker, form_into_graph_maker_new } from './graph_maker.js';
+	import { makeGraphFromForm } from './graphs.js';
 
 	import { flyAndScale } from '$lib/transitions';
 	import CuidaCaretDownOutline from '~icons/cuida/caret-down-outline';
-	import AlpaTooltip from '$lib/alpa-tooltip.svelte';
-	import { Select, Checkbox, Switch, Slider } from 'bits-ui';
+	import AlpaPopover from '$lib/alpa-popover.svelte';
+	import AlpaSelect from '$lib/alpa-select.svelte';
+	import { Checkbox, Switch, Slider } from 'bits-ui';
 
-import MaterialSymbolsLightUpdate from '~icons/material-symbols-light/update'
-import MaterialSymbolsLightUpdateDisabled from '~icons/material-symbols-light/update-disabled'
-import MaterialSymbolsLightMovieInfoOutlineSharp from '~icons/material-symbols-light/movie-info-outline-sharp'
-import IconoirGraphDown from '~icons/iconoir/graph-down'
+	// import MaterialSymbolsLightSync from '~icons/material-symbols-light/update';
+	// import MaterialSymbolsLightSyncDisabled from '~icons/material-symbols-light/update-disabled';
+	// import MaterialSymbolsLightSyncDisabled from '~icons/material-symbols/sync-disabled';
+	// import MaterialSymbolsLightSync from '~icons/material-symbols/sync'
+	import MaterialSymbolsLightSyncDisabled from '~icons/material-symbols-light/sync-disabled';
+	import MaterialSymbolsLightSync from '~icons/material-symbols-light/sync';
+	import RiFullscreenLine from '~icons/ri/fullscreen-line';
+	import RiFullscreenExitLine from '~icons/ri/fullscreen-exit-line';
 
 	let performance_type = $state('power/weight');
 	let graph_d = '2D';
+	let autoscale = $state(true);
+	let lowest_resp_var = $state(0);
+	let highest_resp_var = $state(0);
 	let power_unit = $state('hp');
+	let thrust_unit = $state('kgf');
 	let weight_unit = $state('kg');
 	let power_modes = $state(['WEP']);
 	let speed_type = $state('IAS');
 	let speed = $state(300);
-	let stupid = $state([0, 1, 5, 10])
+	let latestAutoAxisMin = $state(0);
+	let latestAutoAxisMax = $state(0);
+	let stupid = $state([0, 1, 5, 10]);
 	let speed_unit = $state('km/h');
 	let max_alt = $state(10000);
 	let alt_unit = $state('m');
 	let air_temp = $state(15);
 	let air_temp_unit = $state('°C');
 	let axis_layout = $state(false);
-	let chosenplanes = $state([]);
+	let chosenplanes = $state(['j7w1', 'j7w1:2']);
 	let chosenplanes_ingame = $state([]);
 	let fuel_percents = $state([]);
-	let plane_versions  = $state([]);
+	let include_boosters = $state([]);
+	let plane_versions = $state(['2.53.0.6', '2.29.0.5']);
 	let bg_col = getComputedStyle(document.body).getPropertyValue('--bg-col');
 
 	// let colour_set = [
@@ -66,7 +78,7 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 		'rgb(153, 153, 153)',
 		'rgb(27, 158, 119)',
 		'rgb(217, 95, 2)',
-		'#rgb(117, 112, 179)',
+		'rgb(117, 112, 179)',
 		'rgb(231, 41, 138)',
 		'rgb(130, 201, 53)',
 		'rgb(230, 171, 2)',
@@ -75,13 +87,17 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 		'rgb(254, 90, 206)',
 		'rgb(255, 0, 100)'
 	];
-	
+
 	let isGraphVisible = $state(true);
 	let auto_calculation = $state(true);
+	let fullscreen_graph = $state(false);
+	let isActuallyFullscreen = $state(false);
 
 	let performances = [
-		{ value: 'power', label: `Power` },
-		{ value: 'power/weight', label: 'Power / Weight' }
+		{ value: 'power', label: `💥Power` },
+		{ value: 'power/weight', label: '💥Power / ⚖️Weight' },
+		{ value: 'thrust', label: `⬅️Thrust` },
+		{ value: 'thrust/weight', label: '⬅️Thrust / ⚖️Weight' }
 	];
 	// let graph_ds = ['2D', '3D(WiP)'];
 
@@ -90,12 +106,10 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 		['military', '100% throttle in WT']
 	];
 
-	let speed_types = [
-		['IAS', 'Indicated Air Speed'],
-		['TAS', 'True Air Speed']
-	];
+	let speed_types = ['IAS', 'TAS'];
 
 	let power_units = ['hp', 'kW', 'kcal/s'];
+	let thrust_units = ['kgf', 'N', 'lbf', '🐎⬅️'];
 
 	let weight_units = ['kg', 'lb', 'oz', '🐎⚖️'];
 
@@ -105,20 +119,37 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 
 	let alt_units = ['m', 'ft', 'mile', 'yard', '🐎⬆️'];
 
-
 	// $inspect({chosenplanes, chosenplanes_ingame, fuel_percents, plane_versions});
 
+	function getSpeedLimitMax(unit) {
+		const speedLimitKph =
+			performance_type === 'thrust' || performance_type === 'thrust/weight' ? 2000 : 1000;
+		const unitToKph = {
+			'km/h': 1,
+			'm/s': 3.6,
+			kt: 1.852,
+			mph: 1.609344,
+			'🐎💨': 40
+		};
+
+		if (!(unit in unitToKph)) {
+			return speedLimitKph;
+		}
+
+		return Number((speedLimitKph / unitToKph[unit]).toFixed(1));
+	}
 
 	function validateSpeed(speed, unit) {
-		const limits = {
-			'km/h': { min: 0, max: 3000 },
-			'm/s': { min: 0, max: 833.3 },
-			kt: { min: 0, max: 1619.9 },
-			mph: { min: 0, max: 1864.1 },
-			'🐎💨': { min: 0, max: 75 }
-		};
-		return Math.min(Math.max(speed, limits[unit].min), limits[unit].max);
+		const max = getSpeedLimitMax(unit);
+		return Math.min(Math.max(speed, 0), max);
 	}
+
+	$effect(() => {
+		const clampedSpeed = validateSpeed(speed, speed_unit);
+		if (clampedSpeed !== speed) {
+			speed = clampedSpeed;
+		}
+	});
 
 	function validateAltitude(alt, unit) {
 		const limits = {
@@ -141,33 +172,9 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 		return Math.min(Math.max(temp, limits[unit].min), limits[unit].max);
 	}
 
-	function convertTemperature(value, fromUnit, toUnit) {
-		if (fromUnit === toUnit) return value;
-
-		// First convert to Celsius
-		let celsius = value;
-		if (fromUnit === '°F') {
-			celsius = (value - 32) / 1.8;
-		} else if (fromUnit === '°K') {
-			celsius = value - 273.15;
-		} else if (fromUnit === '🐎🌡️') {
-			celsius = value * 38;
-		}
-
-		// Then convert to target unit
-		if (toUnit === '°F') {
-			return Number((celsius * 1.8 + 32).toFixed(1));
-		} else if (toUnit === '°K') {
-			return Number((celsius + 273.15).toFixed(1));
-		} else if (toUnit === '🐎🌡️') {
-			return Number((celsius / 38).toFixed(1));
-		}
-		return Number(celsius.toFixed(1));
-	}
-
-	// Add handlers for unit changes
-	function handleSpeedUnitChange(event) {
+	function changeSpeedUnit(event) {
 		const newUnit = typeof event === 'string' ? event : event.target.value;
+		if (speed_unit === newUnit) return;
 		const conversions = {
 			'km/h': 1,
 			'm/s': 3.6,
@@ -175,11 +182,14 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 			mph: 1.609344,
 			'🐎💨': 40
 		};
-		speed = Number(((speed * conversions[speed_unit]) / conversions[newUnit]).toFixed(1));
+		if (!(speed_unit in conversions) || !(newUnit in conversions)) return;
+
+		const convertedSpeed = Number(((speed * conversions[speed_unit]) / conversions[newUnit]).toFixed(1));
+		speed = validateSpeed(convertedSpeed, newUnit);
 		speed_unit = newUnit;
 	}
 
-	function handleAltUnitChange(event) {
+	function changeAltitudeUnit(event) {
 		const newUnit = typeof event === 'string' ? event : event.target.value;
 		const conversions = {
 			m: 1,
@@ -192,96 +202,323 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 		alt_unit = newUnit;
 	}
 
-	function handleTempUnitChange(event) {
+	function changeTemperatureUnit(event) {
 		const newUnit = typeof event === 'string' ? event : event.target.value;
-		air_temp = convertTemperature(air_temp, air_temp_unit, newUnit);
-		air_temp_unit = newUnit;
-	}
+		if (air_temp_unit === newUnit) return; // ✅ Early exit without returning a value
 
-	// Utility function for throttling
-	function createThrottle(func: Function, limit: number) {
-	let lastRun = 0;
-	let timeout: number | undefined;
-
-	return function(this: void, ...args: any[]) {
-		const now = Date.now();
-		
-		if (lastRun && now < lastRun + limit) {
-			console.log('check1')
-		clearTimeout(timeout);
-		timeout = window.setTimeout(() => {
-			lastRun = now;
-			func.apply(this, args);
-		}, limit);
-		} else {
-		console.log('check2')
-		lastRun = now;
-		func.apply(this, args);
+		// First convert to Celsius
+		let celsius = air_temp;
+		if (air_temp_unit === '°F') {
+			celsius = (air_temp - 32) / 1.8;
+		} else if (air_temp_unit === '°K') {
+			celsius = air_temp - 273.15;
+		} else if (air_temp_unit === '🐎🌡️') {
+			celsius = air_temp * 38;
 		}
+
+		// Then convert to target unit
+		if (newUnit === '°F') {
+			air_temp = Number((celsius * 1.8 + 32).toFixed(1));
+		} else if (newUnit === '°K') {
+			air_temp = Number((celsius + 273.15).toFixed(1));
+		} else if (newUnit === '🐎🌡️') {
+			air_temp = Number((celsius / 38).toFixed(1));
+		} else {
+			air_temp = Number(celsius.toFixed(1));
+		}
+
+		air_temp_unit = newUnit; // ✅ Now this always gets executed
 	}
+
+	// Utility function for graph throttling
+	function createThrottle(func: Function, limit: number) {
+		let lastRun = 0;
+		let timeout: number | undefined;
+
+		return function (this: void, ...args: any[]) {
+			const now = Date.now();
+
+			if (lastRun && now < lastRun + limit) {
+				console.log('check1');
+				clearTimeout(timeout);
+				timeout = window.setTimeout(() => {
+					lastRun = now;
+					func.apply(this, args);
+				}, limit);
+			} else {
+				console.log('check2');
+				lastRun = now;
+				func.apply(this, args);
+			}
+		};
 	}
 
 	// Create throttled version of graph maker
 	const throttledGraphMaker = createThrottle(() => {
-	form_into_graph_maker(
-		performance_type,
-		graph_d,
-		power_unit,
-		weight_unit,
-		power_modes,
-		speed_type,
-		speed,
-		speed_unit,
-		max_alt,
-		alt_unit,
-		air_temp,
-		air_temp_unit,
-		axis_layout,
-		chosenplanes,
-		chosenplanes_ingame,
-		fuel_percents,
-		plane_versions,
-		colour_set,
-		bg_col
-	);
-	}, 40);
-	let tracker = []
+		makeGraphFromForm(
+			performance_type,
+			graph_d,
+			power_unit,
+			thrust_unit,
+			weight_unit,
+			power_modes,
+			speed_type,
+			speed,
+			speed_unit,
+			max_alt,
+			alt_unit,
+			air_temp,
+			air_temp_unit,
+			autoscale,
+			lowest_resp_var,
+			highest_resp_var,
+			axis_layout,
+			chosenplanes,
+			chosenplanes_ingame,
+			fuel_percents,
+			include_boosters,
+			plane_versions,
+			colour_set,
+			bg_col
+		);
+	}, 1);
+	let tracker = [];
+	let skipNextGraphRecalc = false;
+	let lastNonSpeedSignature = '';
+
+	function buildNonSpeedSignature() {
+		return JSON.stringify({
+			performance_type,
+			graph_d,
+			power_unit,
+			thrust_unit,
+			weight_unit,
+			power_modes,
+			speed_type,
+			speed_unit,
+			max_alt,
+			alt_unit,
+			air_temp,
+			air_temp_unit,
+			autoscale,
+			lowest_resp_var,
+			highest_resp_var,
+			axis_layout,
+			chosenplanes,
+			chosenplanes_ingame,
+			fuel_percents,
+			include_boosters,
+			plane_versions,
+			colour_set,
+			bg_col
+		});
+	}
 	// Effect to watch changes
-	$effect.pre(() => {
-	tracker = fuel_percents.slice() 
+	$effect(() => {
+		tracker = fuel_percents.slice();
+		const currentNonSpeedSignature = buildNonSpeedSignature();
 
-	if (!auto_calculation) return;
-	
-	throttledGraphMaker({
-		performance_type,
-		graph_d,
-		power_unit,
-		weight_unit,
-		power_modes,
-		speed_type,
-		speed,
-		speed_unit,
-		max_alt,
-		alt_unit,
-		air_temp,
-		air_temp_unit,
-		axis_layout,
-		chosenplanes,
-		chosenplanes_ingame,
-		fuel_percents,
-		plane_versions,
-		colour_set,
-		bg_col
-	});
+		if (!auto_calculation) {
+			lastNonSpeedSignature = currentNonSpeedSignature;
+			return;
+		}
+		if (skipNextGraphRecalc) {
+			const onlySpeedChanged = currentNonSpeedSignature === lastNonSpeedSignature;
+			skipNextGraphRecalc = false;
+			if (onlySpeedChanged) {
+				lastNonSpeedSignature = currentNonSpeedSignature;
+				return;
+			}
+		}
+
+		throttledGraphMaker({
+			performance_type,
+			graph_d,
+			power_unit,
+			thrust_unit,
+			weight_unit,
+			power_modes,
+			speed_type,
+			speed,
+			speed_unit,
+			max_alt,
+			alt_unit,
+			air_temp,
+			air_temp_unit,
+			autoscale,
+			lowest_resp_var,
+			highest_resp_var,
+			axis_layout,
+			chosenplanes,
+			chosenplanes_ingame,
+			fuel_percents,
+			include_boosters,
+			plane_versions,
+			colour_set,
+			bg_col
+		});
+
+		lastNonSpeedSignature = currentNonSpeedSignature;
 	});
 
-	
+	function handleAutoscaleToggle(checked: boolean) {
+		autoscale = checked;
+		if (!checked) {
+			if (Number.isFinite(latestAutoAxisMin) && Number.isFinite(latestAutoAxisMax)) {
+				lowest_resp_var = Number(latestAutoAxisMin.toFixed(3));
+				highest_resp_var = Number(latestAutoAxisMax.toFixed(3));
+			}
+		}
+	}
+
+	const MANUAL_AXIS_MIN_GAP = 0.001;
+
+	function updateManualAxisMin(rawValue: number) {
+		if (!Number.isFinite(rawValue)) return;
+
+		lowest_resp_var = Number(Math.max(0, rawValue).toFixed(3));
+		if (highest_resp_var <= lowest_resp_var) {
+			highest_resp_var = Number((lowest_resp_var + MANUAL_AXIS_MIN_GAP).toFixed(3));
+		}
+	}
+
+	function updateManualAxisMax(rawValue: number) {
+		if (!Number.isFinite(rawValue)) return;
+
+		highest_resp_var = Number(Math.max(0, rawValue).toFixed(3));
+		if (highest_resp_var <= lowest_resp_var) {
+			highest_resp_var = Number((lowest_resp_var + MANUAL_AXIS_MIN_GAP).toFixed(3));
+		}
+	}
+
+	function launchFullScreen(element) {
+		if (element.requestFullScreen) {
+			element.requestFullScreen();
+		} else if (element.mozRequestFullScreen) {
+			element.mozRequestFullScreen();
+		} else if (element.webkitRequestFullScreen) {
+			element.webkitRequestFullScreen();
+		}
+	}
+	interface FullScreenDocument extends Document {
+		mozCancelFullScreen?: () => Promise<void>;
+		webkitExitFullscreen?: () => Promise<void>;
+		msExitFullscreen?: () => Promise<void>;
+	}
+
+	interface UnFullScreenDocument extends Document {
+		mozFullScreenElement?: () => Promise<void>;
+		webkitFullscreenElement?: () => Promise<void>;
+		msFullscreenElement?: () => Promise<void>;
+	}
+
+	function handleFullscreenToggle(checked: boolean) {
+		if (checked) {
+			launchFullScreen(document.getElementById('graphid'));
+		} else {
+			const doc = document as FullScreenDocument;
+			if (doc.exitFullscreen) {
+				doc.exitFullscreen();
+			} else if (doc.mozCancelFullScreen) {
+				doc.mozCancelFullScreen();
+			} else if (doc.webkitExitFullscreen) {
+				doc.webkitExitFullscreen();
+			}
+		}
+	}
+
+	// Add fullscreen change event listener
+	$effect(() => {
+		const changeFullscreen = () => {
+			const doc = document as UnFullScreenDocument;
+			isActuallyFullscreen = Boolean(
+				doc.fullscreenElement ||
+					doc.webkitFullscreenElement ||
+					doc.mozFullScreenElement ||
+					doc.msFullscreenElement
+			);
+			fullscreen_graph = isActuallyFullscreen; // Keep the switch state in sync
+		};
+
+		document.addEventListener('fullscreenchange', changeFullscreen);
+		document.addEventListener('webkitfullscreenchange', changeFullscreen);
+		document.addEventListener('mozfullscreenchange', changeFullscreen);
+		document.addEventListener('MSFullscreenChange', changeFullscreen);
+
+		return () => {
+			document.removeEventListener('fullscreenchange', changeFullscreen);
+			document.removeEventListener('webkitfullscreenchange', changeFullscreen);
+			document.removeEventListener('mozfullscreenchange', changeFullscreen);
+			document.removeEventListener('MSFullscreenChange', changeFullscreen);
+		};
+	});
+
+	let plotExists = $state(false);
+
+	$effect(() => {
+		const onSliderSpeedChange = (event: Event) => {
+			const customEvent = event as CustomEvent<{ speed?: number }>;
+			const incomingSpeed = customEvent.detail?.speed;
+			if (!Number.isFinite(incomingSpeed)) return;
+
+			const nextSpeed = Number(incomingSpeed);
+			if (nextSpeed === speed) return;
+
+			skipNextGraphRecalc = true;
+			speed = nextSpeed;
+		};
+
+		window.addEventListener('wtapc-slider-speed-change', onSliderSpeedChange as EventListener);
+		return () => {
+			window.removeEventListener(
+				'wtapc-slider-speed-change',
+				onSliderSpeedChange as EventListener
+			);
+		};
+	});
+
+	$effect(() => {
+		const onAxisRangeChange = (event: Event) => {
+			const customEvent = event as CustomEvent<{ min?: number; max?: number }>;
+			const incomingMin = customEvent.detail?.min;
+			const incomingMax = customEvent.detail?.max;
+			if (!Number.isFinite(incomingMin) || !Number.isFinite(incomingMax)) return;
+
+			latestAutoAxisMin = Number(incomingMin);
+			latestAutoAxisMax = Number(incomingMax);
+		};
+
+		window.addEventListener('wtapc-power-axis-range', onAxisRangeChange as EventListener);
+		return () => {
+			window.removeEventListener('wtapc-power-axis-range', onAxisRangeChange as EventListener);
+		};
+	});
+
+	// Add effect to watch for plot container
+	$effect(() => {
+		const observer = new MutationObserver((mutations) => {
+			for (const mutation of mutations) {
+				if (mutation.type === 'childList') {
+					plotExists = !!document.querySelector('#graphid .plot-container.plotly');
+				}
+			}
+		});
+
+		const graphElement = document.getElementById('graphid');
+		if (graphElement) {
+			observer.observe(graphElement, { childList: true, subtree: true });
+			// Initial check
+			plotExists = !!document.querySelector('#graphid .plot-container.plotly');
+		}
+
+		return () => observer.disconnect();
+	});
 </script>
 
-<div class="ui">
+<div class="ui" class:fullscreen={fullscreen_graph}>
 	<div class="button-panel">
 		<a id="home_button" href="/">
-			<img src="/images/WTAPC_logo_1280.png" alt="WTAPC logo" />
+			<img src="images/WTAPC_logo_1280.png" alt="WTAPC logo" />
 		</a>
 
 		<!-- <select class ='dimen_button' bind:value={graph_d}>
@@ -295,45 +532,48 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 		<grid-item id="axis_layout">
 			<label>
 				&nbsp&nbsp&nbsp X ⮂ Y axis &nbsp
-				
+
 				<Checkbox.Root bind:checked={axis_layout} class="b-checkbox-root">
-					<Checkbox.Indicator let:isChecked class="b-checkbox-indicator">
-						{#if isChecked}
-							✓
-						{/if}
-					</Checkbox.Indicator>
-					<Checkbox.Input />
+					{#snippet children({ checked })}
+						<div class="b-checkbox-indicator">
+							{#if checked}
+								✓
+							{/if}
+						</div>
+					{/snippet}
 				</Checkbox.Root>
 			</label>
 		</grid-item>
 		<grid-item id="auto_calc">
+			<Switch.Root class="b-switch-root" bind:checked={auto_calculation}>
+				<MaterialSymbolsLightSync id="auto_calcsvg" />
+				<MaterialSymbolsLightSyncDisabled id="manual_calcsvg" />
+				<Switch.Thumb />
+			</Switch.Root>
+			<AlpaPopover>
+				<MaterialSymbolsLightSync /> - automatic graph generation 25 times/s.<br /> Laggy with
+				complex graphs on weak CPUs. <br /> <br />
+				<MaterialSymbolsLightSyncDisabled /> - You need to press the button to generate the graph.
+			</AlpaPopover>
+		</grid-item>
+		<!-- <grid-item id="table-graph">
 			<Switch.Root class="b-switch-root"
-			bind:checked = {auto_calculation}
+			bind:checked = {isGraphVisible}
 			>
-				<MaterialSymbolsLightUpdate id='auto_calcsvg' /> <MaterialSymbolsLightUpdateDisabled id='manual_calcsvg'/>
+				<IconoirGraphDown id='auto_calcsvg' /> <MaterialSymbolsLightMovieInfoOutlineSharp id='manual_calcsvg'/>
 				<Switch.Input />
 			</Switch.Root>
-			<AlpaTooltip>
-				<MaterialSymbolsLightUpdate /> - automatic graph generation 25 times/s.<br /> Laggy with complex graphs on weak CPUs. <br /> <br />
-				<MaterialSymbolsLightUpdateDisabled /> - You need to press the button to generate the graph.
-
-			</AlpaTooltip>
-		</grid-item>
-		<Switch.Root class="b-switch-root"
-		bind:checked = {isGraphVisible}
-		>
-			<IconoirGraphDown id='auto_calcsvg' /> <MaterialSymbolsLightMovieInfoOutlineSharp id='manual_calcsvg'/>
-			<Switch.Input />
-		</Switch.Root>
+		</grid-item> -->
 
 		<button
 			id="post-form-button"
 			disabled={auto_calculation}
 			onclick={() =>
-				form_into_graph_maker_new(
+				makeGraphFromForm(
 					performance_type,
 					graph_d,
 					power_unit,
+					thrust_unit,
 					weight_unit,
 					power_modes,
 					speed_type,
@@ -343,165 +583,206 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 					alt_unit,
 					air_temp,
 					air_temp_unit,
+					autoscale,
+					lowest_resp_var,
+					highest_resp_var,
 					axis_layout,
 					chosenplanes,
 					chosenplanes_ingame,
 					fuel_percents,
+					include_boosters,
 					plane_versions,
 					colour_set,
 					bg_col
 				)}
 		>
 			<img
-				src="/images/plot_icon.png"
+				src="images/plot_icon.png"
 				alt="Icon of an example power plot"
 				class:rotated={axis_layout}
 			/>
 			{#if auto_calculation}
 				<span id="calculate_text">Graph<br />refresh mode</span>
 			{:else}
-				<span id="calculate_text">Generate<br />a&nbspGraph</span>
+				<span id="calculate_text">Click&nbspto<br />Graph</span>
 			{/if}
-			
 		</button>
+
+		<grid-item id="axis_scale">
+			<label>
+				Auto{axis_layout ? '↔' : '↕'}&nbsp
+				<Checkbox.Root
+					bind:checked={autoscale}
+					onCheckedChange={handleAutoscaleToggle}
+					class="b-checkbox-root"
+				>
+					{#snippet children({ checked })}
+						<div class="b-checkbox-indicator">
+							{#if checked}
+								✓
+							{/if}
+						</div>
+					{/snippet}
+				</Checkbox.Root>
+			</label>
+			&nbsp
+			{#if !autoscale}
+
+					<input
+						class="input-field"
+						title="Fixed minimum value of the power (or power/weight) axis"
+						type="number"
+						min="0"
+						max="30000"
+						step="any"
+						style="width:5ch"
+						bind:value={lowest_resp_var}
+						oninput={(e) => {
+							const target = e.target as HTMLInputElement | null;
+							if (target) {
+								updateManualAxisMin(target.valueAsNumber);
+							}
+						}}
+					/>
+					&nbsp
+					<input
+						class="input-field"
+						title="Fixed maximum value of the power (or power/weight) axis"
+						type="number"
+						min="0"
+						max="30000"
+						step="any"
+						style="width:5ch"
+						bind:value={highest_resp_var}
+						oninput={(e) => {
+							const target = e.target as HTMLInputElement | null;
+							if (target) {
+								updateManualAxisMax(target.valueAsNumber);
+							}
+						}}
+					/>
+			{/if}
+		</grid-item>
 	</div>
 
 	<form id="engine_power_form" style="display: {isGraphVisible ? 'grid' : 'none'}">
 		<grid-item id="perf-type">
-			<Select.Root
-				selected={performances[1]}
-				onSelectedChange={(value) => (performance_type = value?.value ?? performance_type)}
-			>
-				<Select.Trigger
-					id="performance-select"
-					class="b-select-field"
-					aria-label="performance metric to graph"
-				>
-					<Select.Value />
-					<CuidaCaretDownOutline class="caret-svg" />
-				</Select.Trigger>
-				<Select.Content class="b-select-dropdown">
-					{#each performances as performance}
-						<Select.Item class="b-select-item" value={performance.value}>
-							{performance.label}
-						</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
-			<AlpaTooltip>
-				
-			<b>Power</b> - engine power of a single engine of the plane.<br />Useful for finding best engines. And for comparing with historical info.
-			<br /><br />
-			<b>Power/Weight </b> - engine power of all engines of the plane divided by that planes weight.<br /> Useful for fiding altitude with best relative performance advantage over an enemy plane.
-				
-			</AlpaTooltip>
-		</grid-item>
-		<grid-item id="power_unit">
 			<label>
-				Power Unit:&nbsp
-				<Select.Root
-					selected={{ value: power_unit, label: power_unit }}
-					onSelectedChange={(value) => (power_unit = value?.value ?? power_unit)}
-				>
-					<Select.Trigger
-						id="power-select"
-						class="b-select-field"
-						aria-label="performance metric to graph"
-					>
-						<Select.Value />
-						<CuidaCaretDownOutline class="caret-svg" />
-					</Select.Trigger>
-					<Select.Content class="b-select-dropdown">
-						{#each power_units as power_unit}
-							<Select.Item class="b-select-item" value={power_unit}>
-								{power_unit}
-							</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
+				Graph&nbspType:&nbsp
+				<AlpaSelect
+					bind:value={performance_type}
+					options={performances}
+					id="performance-select"
+					aria-label="performance metric to graph"
+				/>
 			</label>
 
-			<AlpaTooltip>
-				
-				1 kW = 1 kJ/s = 1.34102 hp &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; 1 kcal/s = 4.18399
-				kW = 5.61459 hp <br /> <br />
-				<b>1 hp</b> (horsepower 🐎⚡️) is power that a draft horse can produce for a prolonged
-				time. A very good unit.<br />
-				<b>1 kW</b> (kilowatt) is power needed to lift 100kg up 1 meter every second against
-				Earths gravity<br />
-				(assuming 10N gravity).<br />
-				<b>1 kcal/s</b> (kilocalorie/s) is an amount of power that can heat 1l of water up by 1°C
-				every second.<br />
-				
-			</AlpaTooltip>
+			<AlpaPopover>
+				<b>Power</b> - engine power of a single engine of the plane.<br />Useful for finding best
+				engines. And for comparing with historical info.
+				<br /><br />
+				<b>Power/Weight </b> - engine power of all engines of the plane divided by that planes
+				weight.<br /> Useful for fiding altitude with best relative performance advantage over an enemy
+				plane.
+			</AlpaPopover>
 		</grid-item>
-		{#if performance_type === 'power/weight'}
+		<grid-item id="power_unit">
+			{#if performance_type === 'power' || performance_type === 'power/weight'}
+				<label>
+					Power Unit:&nbsp
+					<AlpaSelect
+						bind:value={power_unit}
+						options={power_units}
+						id="power-select"
+						aria-label="power unit"
+					/>
+				</label>
+
+				<AlpaPopover>
+					1 kW = 1 kJ/s = 1.34102 hp &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; 1 kcal/s = 4.18399 kW
+					= 5.61459 hp <br /> <br />
+					1 <b>hp</b> (horsepower 🐎⚡️) is power that a draft horse can produce for a prolonged time.
+					A very good unit.<br />
+					1 <b>kW</b> (kilowatt) is power needed to lift 100kg up 1 meter every second against Earths
+					gravity<br />
+					(assuming 10N gravity).<br />
+					1 <b>kcal/s</b> (kilocalorie/s) is an amount of power that can heat 1l of water up by 1°C
+					every second.<br />
+				</AlpaPopover>
+			{:else}
+				<label>
+					Thrust Unit:&nbsp
+					<AlpaSelect
+						bind:value={thrust_unit}
+						options={thrust_units}
+						id="thrust-select"
+						aria-label="thrust unit"
+					/>
+				</label>
+
+				<AlpaPopover>
+					1 kgf = 9.80665 N = 2.20462 lbf = 0.0131506 🐎⬅️
+					<br /> <br />
+					1 <b>kgf</b> (kilogram-force) is force of gravity on 1 kg at Earth standard gravity.<br />
+					1 <b>N</b> (newton) is SI force unit.<br />
+					1 <b>lbf</b> (pound-force) is force of gravity on 1 pound at Earth standard gravity.<br />
+					1 🐎⬅️(horsethrust) is defined as the force equivalent of 1 horsepower at 1 m/s, so
+					1 🐎⬅️= 745.7 N.
+				</AlpaPopover>
+			{/if}
+		</grid-item>
+		{#if performance_type === 'power/weight' || performance_type === 'thrust/weight'}
 			<grid-item id="weight_unit">
 				<label
 					>Weight unit:&nbsp
-					<Select.Root
-						selected={{ value: weight_unit, label: weight_unit }}
-						onSelectedChange={(value) => (weight_unit = value?.value ?? weight_unit)}
-					>
-						<Select.Trigger
-							id="weight-select"
-							class="b-select-field"
-							aria-label="performance metric to graph"
-						>
-							<Select.Value />
-							<CuidaCaretDownOutline class="caret-svg" />
-						</Select.Trigger>
-						<Select.Content class="b-select-dropdown">
-							{#each weight_units as weight_unit}
-								<Select.Item class="b-select-item" value={weight_unit}>
-									{weight_unit}
-								</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
+					<AlpaSelect
+						bind:value={weight_unit}
+						options={weight_units}
+						id="weight-select"
+						aria-label="weight unit"
+					/>
 				</label>
-				<AlpaTooltip>
+				<AlpaPopover>
 					1 kg = 2.20462 lb = 35.274 oz = 0.00125 🐎⚖️<br /> <br />
 
-					<b>1 kg</b> is weight of 1l of distilled water at 4°C.<br />
-					<b>1 lb</b> (pound) is just 0.45359237 kg. A trash unit.<br />
-					<b>1 oz</b> (ounce) is simply 0.028349523125 kg. Another useless unit.<br />
-					1 🐎⚖️ (horseweight) is a weight of 1 draft horse (800kg). A very good unit.
-				</AlpaTooltip>
+					1 <b>kg</b> is weight of 1l of distilled water at 4°C.<br />
+					1 <b>lb</b> (pound) is just 0.45359237 kg. A trash unit.<br />
+					1 <b>oz</b> (ounce) is simply 0.028349523125 kg. Another useless unit.<br />
+					1 🐎⚖️ (horsemass) is a weight of 1 draft horse (800kg). A very good unit.
+				</AlpaPopover>
 			</grid-item>
 		{/if}
 		<grid-item id="power_modes"
 			>Throttle: &nbsp
 			{#each power_modes_list as power_mode}
-			<label title={power_mode[1]}>
-				<Checkbox.Root 
-					checked={power_modes.includes(power_mode[0])}
-					onCheckedChange={(checked) => {
-						if (checked) {
-							power_modes = [...power_modes, power_mode[0]];
-						} else {
-							power_modes = power_modes.filter(mode => mode !== power_mode[0]);
-						}
-					}}
-					class="b-checkbox-root"
-				>
-					<Checkbox.Indicator let:isChecked class="b-checkbox-indicator">
-						{#if isChecked}
-							✓
-						{/if}
-					</Checkbox.Indicator>
-					<Checkbox.Input />
-				</Checkbox.Root>
-				&nbsp{power_mode[0]} &nbsp
-			</label>
-		{/each}
+				<label title={power_mode[1]}>
+					<Checkbox.Root
+						checked={power_modes.includes(power_mode[0])}
+						onCheckedChange={(checked) => {
+							if (checked) {
+								power_modes = [...power_modes, power_mode[0]];
+							} else {
+								power_modes = power_modes.filter((mode) => mode !== power_mode[0]);
+							}
+						}}
+						class="b-checkbox-root"
+					>
+						{#snippet children({ checked })}
+							<div class="b-checkbox-indicator">
+								{#if checked}
+									✓
+								{/if}
+							</div>
+						{/snippet}
+					</Checkbox.Root>
+					&nbsp{power_mode[0]} &nbsp
+				</label>
+			{/each}
 
-		<AlpaTooltip>
-				
-			<b>WEP</b> (War Emergency Power) is a maximum throttle the engine can run at.<br />
-			<b>military</b> power is 100% throttle in War Tunder.
-			
-		</AlpaTooltip>
+			<AlpaPopover>
+				<b>WEP</b> (War Emergency Power) is the maximum throttle (110% in WT).<br />
+				<b>Military</b> power is 100% throttle in WT.
+			</AlpaPopover>
 		</grid-item>
 
 		<grid-item id="speed">
@@ -511,7 +792,10 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 					class="input-field"
 					title="Speed inceases critical altitudes via air ram effect"
 					type="number"
-					style="width:5ch"
+					step="10"
+					min="0"
+					max={getSpeedLimitMax(speed_unit)}
+					style="width:7ch"
 					bind:value={speed}
 					onchange={(e) => {
 						const target = e.target as HTMLInputElement | null;
@@ -523,59 +807,34 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 			</label>
 			&nbsp
 
-			<Select.Root
-				selected={{ value: speed_unit, label: speed_unit }}
-				onSelectedChange={(value) => {
-					handleSpeedUnitChange(value?.value ?? speed_unit);
+			<AlpaSelect
+				value={speed_unit}
+				onValueChange={(value) => {
+					changeSpeedUnit(value ?? speed_unit);
 				}}
-			>
-				<Select.Trigger
-					id="speed-select"
-					class="b-select-field"
-					aria-label="performance metric to graph"
-				>
-					<Select.Value />
-					<CuidaCaretDownOutline class="caret-svg" />
-				</Select.Trigger>
-				<Select.Content class="b-select-dropdown">
-					{#each speed_units as speed_unit}
-						<Select.Item class="b-select-item" value={speed_unit}>
-							{speed_unit}
-						</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
+				options={speed_units}
+				id="speed-select"
+				aria-label="speed unit"
+			/>
 			&nbsp
-			<Select.Root
-				selected={{ value: speed_type, label: speed_type }}
-				onSelectedChange={(value) => (speed_type = value?.value ?? speed_type)}
-			>
-				<Select.Trigger
-					id="speed_type-select"
-					class="b-select-field"
-					aria-label="performance metric to graph"
-				>
-					<Select.Value />
-					<CuidaCaretDownOutline class="caret-svg" />
-				</Select.Trigger>
-				<Select.Content class="b-select-dropdown">
-					{#each speed_types as speed_type}
-						<Select.Item class="b-select-item" value={speed_type[0]}>
-							{speed_type[0]}
-						</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
-			
-			<AlpaTooltip>
+			<AlpaSelect
+				bind:value={speed_type}
+				onValueChange={(value) => {
+					speed_type = value ?? speed_type;
+				}}
+				options={speed_types}
+				id="speed_type-select"
+				aria-label="speed type"
+			/>
+
+			<AlpaPopover>
 				1 km/h = 0.277778 m/s = 0.539957 Kt = 0.621371 mph = 0.025 🐎💨<br /><br />
-				<b>1 km/h</b> <br />
-				<b>1 m/s</b> <br />
-				<b>1 kt</b> <br />
-				<b>1 mph</b> <br />
-				1 🐎💨 (horspeed) is a galloping horse speed (40km/h). A very good unit.
-				
-			</AlpaTooltip>
+				1 <b>km/h</b> (kilometer per hour) is speed of moving 1 kilometer in 1 hour.<br />
+				1 <b>m/s</b> (meter per second) is speed of moving 1 meter in 1 second.<br />
+				1 <b>kt</b> (knot) is speed of moving 1 nautical mile in 1 hour (1.852 km/h).<br />
+				1 <b>mph</b> (mile per hour) is speed of moving 1 mile in 1 hour. A trash unit.<br />
+				1 🐎💨 (horspeed) is a speed of a galloping horse (40km/h). A very good unit.
+			</AlpaPopover>
 		</grid-item>
 
 		<grid-item id="max_alt">
@@ -596,38 +855,23 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 				/>
 			</label>
 			&nbsp
-			<Select.Root
-				selected={{ value: alt_unit, label: alt_unit }}
-				onSelectedChange={(value) => {
-					handleAltUnitChange(value?.value ?? alt_unit);
+			<AlpaSelect
+				value={alt_unit}
+				onValueChange={(value) => {
+					changeAltitudeUnit(value ?? alt_unit);
 				}}
-			>
-				<Select.Trigger
-					id="alt-select"
-					class="b-select-field"
-					aria-label="performance metric to graph"
-				>
-					<Select.Value />
-					<CuidaCaretDownOutline class="caret-svg" />
-				</Select.Trigger>
-				<Select.Content class="b-select-dropdown">
-					{#each alt_units as alt_unit}
-						<Select.Item class="b-select-item" value={alt_unit}>
-							{alt_unit}
-						</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
-			<AlpaTooltip>
-				
+				options={alt_units}
+				id="alt-select"
+				aria-label="altitude unit"
+			/>
+			<AlpaPopover>
 				1 m = 3.28084 ft = 0.000621371 mile = 1.09361 yard = 0.55555 🐎⬆️<br /><br />
-				<b>1 m</b> <br />
-				<b>1 ft</b> <br />
-				<b>1 mile</b> <br />
-				<b>1 yard</b> <br />
-				🐎⬆️ (horseheight) is a height of a draft horse (1.8m). A very good unit.
-				
-			</AlpaTooltip>
+				1 <b>m</b> (meter) is the SI length unit.<br />
+				1 <b>ft</b> (foot) is exactly 0.3048 m. A weird unit.<br />
+				1 <b>mile</b> is exactly 1609.344 m. Abritrary and bad.<br />
+				1 <b>yard</b> is exactly 0.9144 m (3 ft). Bad and arbitrary.<br />
+				1 🐎⬆️ (horseheight) is a height of a draft horse (1.8m). A very good unit.
+			</AlpaPopover>
 		</grid-item>
 
 		<grid-item id="air_temperature">
@@ -648,36 +892,23 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 				/>
 			</label>
 			&nbsp
-			<Select.Root
-				selected={{ value: air_temp_unit, label: air_temp_unit }}
-				onSelectedChange={(value) => {
-					handleTempUnitChange(value?.value ?? air_temp_unit);
+			<AlpaSelect
+				value={air_temp_unit}
+				onValueChange={(value) => {
+					changeTemperatureUnit(value ?? air_temp_unit);
 				}}
-			>
-				<Select.Trigger
-					id="air_temp-select"
-					class="b-select-field"
-					aria-label="performance metric to graph"
-				>
-					<Select.Value />
-					<CuidaCaretDownOutline class="caret-svg" />
-				</Select.Trigger>
-				<Select.Content class="b-select-dropdown">
-					{#each air_temp_units as air_temp_unit}
-						<Select.Item class="b-select-item" value={air_temp_unit}>
-							{air_temp_unit}
-						</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
-			<AlpaTooltip>
-				°C = <br /><br />
+				options={air_temp_units}
+				id="air_temp-select"
+				aria-label="air temperature unit"
+			/>
+			<AlpaPopover>
+				°C = (°F - 32) / 1.8 = °K - 273.15 = 🐎🌡️ × 38<br /><br />
 
-				<b>°C</b> <br />
-				<b>°F</b> <br />
-				<b>°K</b> <br />
-				🐎🌡️ (horseheat) is a height of a draft horse (1.8m). A very good unit.
-			</AlpaTooltip>
+				<b>°C</b> (Celsius) puts water freezing at 0 and boiling at 100 (at sea level).<br />
+				<b>°F</b> (Fahrenheit) puts water freezing at 32 and boiling at 212. A trash unit.<br />
+				<b>°K</b> (Kelvin) is Celsius shifted by +273.15 and starts at absolute zero.<br />
+				🐎🌡️ (horseheat) is an average body temperature of a horse (38°C). A very good unit.
+			</AlpaPopover>
 		</grid-item>
 	</form>
 
@@ -686,43 +917,104 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 		bind:chosenplanes
 		bind:chosenplanes_ingame
 		bind:fuel_percents
+		bind:include_boosters
 		bind:plane_versions
+		{colour_set}
 	/>
 </div>
 
-<div class="graph" id="graphid" style="display: {isGraphVisible ? 'block' : 'none'}"></div>
+<div
+	class="graph"
+	id="graphid"
+	class:fullscreen={fullscreen_graph}
+	style="display: {isGraphVisible ? 'block' : 'none'}"
+>
+	{#if plotExists}
+		<div id="fullscreen_toggle">
+			<Switch.Root
+				class="b-switch-root"
+				id="fullscreen_switch"
+				bind:checked={fullscreen_graph}
+				onCheckedChange={handleFullscreenToggle}
+			>
+				{#if isActuallyFullscreen}
+					<RiFullscreenExitLine id="fullscreen-exitsvg" />
+				{:else}
+					<RiFullscreenLine id="fullscreen-entersvg" />
+				{/if}
+				<Switch.Thumb />
+			</Switch.Root>
+		</div>
+	{/if}
+</div>
 
 <style>
 	.ui {
 		display: grid;
-		grid-template-rows: 1;
+		grid-template-rows: auto;
+		grid-auto-rows: min-content;
 		grid-template-columns: 1fr;
+		align-content: start;
+		justify-content: start;
+		align-items: start;
 		padding-top: 0.5rem;
 		padding-left: 0.5rem;
-		padding-right: 0.5rem;
-		padding-bottom: 20rem;
+		padding-right: 0.8rem;
+		padding-bottom: 1rem;
 		font-size: 1rem;
-		width: 23.5rem;
+		width: 26rem;
+		height: 100vh;
+		overflow-y: auto;
+		overflow-x: hidden;
+		position: relative;
+	}
+
+	:global(.b-select-dropdown) {
+		z-index: 3000;
 	}
 	.graph {
-		position: absolute;
+		position: fixed;
 		top: 0;
+		left: 26rem;
 		right: 0;
 		padding-left: 0;
 		height: 100vh;
 		float: right;
-		width: calc(100% - 23.5rem);
-		overflow: visible;
+		width: calc(100vw - 26rem);
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
+	:global(html),
+	:global(body) {
+		overflow: hidden;
+	}
+
+	#fullscreen_toggle {
+		position: absolute;
+		width: auto;
+		top: 0.5rem;
+		left: 0.2rem;
+		z-index: 1000;
+	}
+	:global(#fullscreen_switch) {
+		background-color: transparent;
+	}
+
+	:global(#fullscreen-exitsvg),
+	:global(#fullscreen-entersvg) {
+		width: 2rem;
+		height: 2rem;
+	}
 	.button-panel {
 		display: grid;
 		grid-template-rows: 1fr 1fr 1fr;
 		grid-template-columns: repeat(8, 1fr);
 		font-style: Inter;
-		padding: 0;
+		padding-bottom: 0.2rem;
 		grid-gap: 0.2rem;
-		border-bottom: 0.4rem;
 	}
 
 	#home_button {
@@ -750,7 +1042,7 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 
 	#post-form-button:disabled {
 		pointer-events: none;
-    }
+	}
 
 	#calculate_text {
 		position: absolute;
@@ -765,7 +1057,7 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 
 	/* .dimen_button, */
 	/* #toggle-graph-button, */
-	#post-form-button{
+	#post-form-button {
 		width: 100%;
 		display: flex;
 		font-size: inherit;
@@ -799,31 +1091,34 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 	#perf-type {
 		grid-row: 1;
 		grid-column: 1 / span 4;
-		height: 2.5rem;
+		height: 2.6rem;
 		background-color: rgb(30, 38, 46);
 	}
 	:global(#performance-select) {
-		width: 9rem;
+		width: 12rem;
 	}
 
 	:global(#power-select) {
 		width: 4.2rem;
 	}
+	:global(#thrust-select) {
+		width: 4.5rem;
+	}
 
 	:global(#weight-select) {
-		width: 3.5rem;
+		width: 4.5rem;
 	}
 	:global(#speed-select) {
-		width: 4rem;
+		width: 4.5rem;
 	}
 	:global(#speed_type-select) {
-		width: 3rem;
+		width: 3.5rem;
 	}
 	:global(#alt-select) {
-		width: 3.5rem;
+		width: 4.5rem;
 	}
 	:global(#air_temp-select) {
-		width: 3.5rem;
+		width: 4.5rem;
 	}
 	#power_unit,
 	#weight_unit,
@@ -869,6 +1164,15 @@ import IconoirGraphDown from '~icons/iconoir/graph-down'
 		background-color: rgb(30, 38, 46);
 		grid-column: 5 / span 2;
 		grid-row: 2;
+	}
+	#axis_scale {
+		background-color: rgb(30, 38, 46);
+		grid-column: 3 / span 4;
+		grid-row: 3;
+		padding-left: 0;
+		display: flex;
+		align-items: center;
+		gap: 0rem;
 	}
 	/*For hiding arrows on integer fields*/
 	input::-webkit-outer-spin-button,

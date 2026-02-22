@@ -13,7 +13,7 @@
 
 
   <div id="footer">
-    <span>Copyright © 2025 Alpakinator. All Rights Reserved.</span>
+    <span>Copyright © 2026 Alpakinator. All Rights Reserved.</span>
     <span>Made with  &nbsp <LogosSvelteKit /></span> 
   </div>
 </div>

@@ -14,7 +14,7 @@ function poly(tab: number[], v: number): number {
 
 export class Atmosphere {
     private g: number = 9.81;           // Earth gravity
-    private P0: number = 101300.0;      // Pressure at sea level, Pa
+    public P0: number = 101300.0;      // Pressure at sea level, Pa
     private T0: number = 288.16;        // Temperature at sea level, K
     private ro0: number = 1.225;        // Density [kg/m3] t=15`C, p=760 mm/1013 gPa
     private Mu0: number = 1.825e-6;     // Viscosity [Pa*sec]
@@ -41,6 +41,7 @@ export class Atmosphere {
     }
 
     public pressure(h: number): number {
+        console
         return this.P0 * poly(Pressure, Math.min(h, this.hMax)) * (this.hMax / Math.max(this.hMax, h));
     }
 
@@ -65,12 +66,18 @@ export class Atmosphere {
     }
 
     public tas_from_ias(ias: number, h: number): number {
-        return ias * Math.pow((1.225 / this.density(h)), 1 / 2);
+        return ias * Math.pow((this.ro0 / this.density(h)), 1 / 2);
     }
     public ram_effect(h: number, tas: number , intake_efficiency: number): number {
         let dynamic_pressure = (((this.density(h) * Math.pow((tas / 3.6), 2)) / 2) * intake_efficiency);
-        console.log(dynamic_pressure, this.pressure(h))
+        // console.log(dynamic_pressure, this.pressure(h),this.T0)
         let ram_alt = Math.round(this.altitudeFromPressure((dynamic_pressure + this.pressure(h)), 0.1, h));
+        return ram_alt;
+    }
+    public ram_effect_den(h: number, tas: number , intake_efficiency: number): number {
+        let dynamic_pressure = (((this.density(h) * Math.pow((tas / 3.6), 2)) / 2) * intake_efficiency);
+        // console.log(dynamic_pressure, this.pressure(h))
+        let ram_alt = Math.round(this.altitudeFromDensity(((dynamic_pressure/82693.87) + this.density(h)), 0.1, h));
         return ram_alt;
     }
 
@@ -114,6 +121,44 @@ export class Atmosphere {
     public altitudeFromPressure_simple(targetPressure: number): number {
             return (1 - Math.pow(targetPressure, 1 / 5.25588)) * (1 / 0.0000225577);
         }
+
+    public altitudeFromDensity(targetDensity: number, tolerance: number = 0.0001, startAltitude: number = 0): number {
+        // Handle very low densities like in C++ implementation
+        const densityAtHmax = this.ro0 * poly(Density, this.hMax);
+        if (targetDensity < densityAtHmax) {
+            return densityAtHmax * this.hMax / Math.max(targetDensity, 1.0e-5);
+        }
+
+        // Newton's method implementation
+        let arg = startAltitude;
+        const maxSteps = 10;
+        const deltaArg = 0.1; // Small step for derivative calculation
+
+        for (let i = 0; i < maxSteps; i++) {
+            // Calculate current value
+            const currentDensity = this.ro0 * poly(Density, arg) - targetDensity;
+        
+            // Calculate derivative
+            const nextDensity = this.ro0 * poly(Density, arg + deltaArg) - targetDensity;
+            const derivative = (nextDensity - currentDensity) / deltaArg;
+        
+            // Check if derivative is too small
+            if (Math.abs(derivative) < 1e-10) {
+                return arg;
+            }
+
+            // Newton step
+            const correction = -currentDensity / derivative;
+            arg += correction;
+
+            // Check if we're close enough
+            if (Math.abs(correction) < tolerance) {
+                return arg;
+            }
+        }
+
+        return arg;
+    }
 }
 
 export function calc_mach(tas: number, temperature: number): number {
@@ -128,40 +173,3 @@ export function calc_tas(mach: number, temperature: number): number {
     return mach * Math.pow(kSpecifcHeat * gasConstant * temperature, 0.5);
 }
 
-    // public altitudeFromDensity(targetDensity: number, tolerance: number = 0.0001, startAltitude: number = 0): number {
-    //     // Handle very low densities like in C++ implementation
-    //     const densityAtHmax = this.ro0 * poly(Density, this.hMax);
-    //     if (targetDensity < densityAtHmax) {
-    //         return densityAtHmax * this.hMax / Math.max(targetDensity, 1.0e-5);
-    //     }
-
-    //     // Newton's method implementation
-    //     let arg = startAltitude;
-    //     const maxSteps = 10;
-    //     const deltaArg = 0.1; // Small step for derivative calculation
-
-    //     for (let i = 0; i < maxSteps; i++) {
-    //         // Calculate current value
-    //         const currentDensity = this.ro0 * poly(Density, arg) - targetDensity;
-            
-    //         // Calculate derivative
-    //         const nextDensity = this.ro0 * poly(Density, arg + deltaArg) - targetDensity;
-    //         const derivative = (nextDensity - currentDensity) / deltaArg;
-            
-    //         // Check if derivative is too small
-    //         if (Math.abs(derivative) < 1e-10) {
-    //             return arg;
-    //         }
-
-    //         // Newton step
-    //         const correction = -currentDensity / derivative;
-    //         arg += correction;
-
-    //         // Check if we're close enough
-    //         if (Math.abs(correction) < tolerance) {
-    //             return arg;
-    //         }
-    //     }
-
-    //     return arg;
-    // }

@@ -5,12 +5,12 @@
 	<span id="catchphrase_footer">If you haven't, check out the guide.</span>
 	<div id="link_buttons">
 		<a class="link-button" id="calculator_link" href="/calculator">
-			<img src="/images/plot_icon.png" id="graph_img" alt="Icon of an example power plot" />
+			<img src="images/plot_icon.png" id="graph_img" alt="Icon of an example power plot" />
 			<span id="calc_text">Enter the Calculator</span>
 		</a>
 		<a class="link-button" id="guide_link" href="/guide">
 			<img
-				src="/images/guide_template.png"
+				src="images/guide_template.png"
 				id="graph_img"
 				alt="Cover page of a rools royce merlin engine"
 			/>

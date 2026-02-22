@@ -1,6 +1,6 @@
 {
-	"name": "wt-aircraft-performance-calculator.org",
-	"version": "1.0.0",
+	"name": "wtapc.org",
+	"version": "1.2.0",
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
@@ -14,20 +14,20 @@
 	},
 	"devDependencies": {
 		"@iconify/json": "^2.2.294",
-		"@sveltejs/adapter-auto": "^3.3.1",
+		"@sveltejs/adapter-auto": "^4.0.0",
 		"@sveltejs/adapter-static": "^3.0.6",
+		"@sveltejs/enhanced-img": "^0.4.4",
 		"@sveltejs/kit": "^2.15.2",
-		"@sveltejs/vite-plugin-svelte": "^4.0.0-next.6",
+		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"@types/eslint": "^8.56.12",
-		"@types/plotly.js": "^2.35.1",
 		"@typescript-eslint/eslint-plugin": "^7.18.0",
 		"@typescript-eslint/parser": "^7.18.0",
-		"eslint": "^8.57.1",
+		"eslint": "^8.56.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.46.1",
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.2",
-		"svelte": "^5.17.5",
+		"svelte": "^5.34.9",
 		"svelte-check": "^4.1.4",
 		"tslib": "^2.8.1",
 		"typescript": "^5.7.3",
@@ -36,8 +36,9 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"bits-ui": "^0.21.16",
-		"plotly.js-dist": "^2.35.2",
+		"@tensorflow/tfjs": "^4.22.0",
+		"bits-ui": "^2.8.10",
+		"plotly.js-dist": "^3.0.1",
 		"svelecte": "^5.0.0-next.16"
 	}
 }
