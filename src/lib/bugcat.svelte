@@ -13,8 +13,8 @@
     <br>
     <img src= {imageUrl} id='bugcat_iself' alt='working_in_progress_gif'/>
     <br>
-    <button id='break_button' on:click={changeImage}>Click to give the Bug-Cat a break</button>😊
-    <button id='work_button' on:click={changeImageback}>GET BACK TO WORK </button>😭
+    <button id='break_button' on:click={changeImage}>Click to give the Bug-Cat a break 😊</button>
+    <button id='work_button' on:click={changeImageback}>GET BACK TO WORK 😭</button>
 </div>
 <style>
     #bugcat_iself{

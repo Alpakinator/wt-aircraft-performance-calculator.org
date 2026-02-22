@@ -53,12 +53,10 @@
 		aspect-ratio: 1;
 		margin-right: 0.5rem;
 		margin-bottom: 0.5rem;
-		outline: 0.15rem solid transparent;
-		transition: outline-color 0.3s;
 	}
-	#home_img:hover{
-		outline: 0.15rem solid #ff0000;
-	}
+	/* #home_img:hover {
+		outline: 0.1rem solid rgba(255, 0, 0, 1);
+	} */
 	#github_button,
 	#discord_button {
 		width: 3rem;
@@ -74,7 +72,6 @@
 	#discord_icon {
 		width: 100%;
 		aspect-ratio: 1;
-		
 	}
 
 	/* #github_text{
@@ -83,7 +80,7 @@
     top: 5%;
     left: 50%;
     transform: translateX(-50%);
-    color: #fdfdfde6;
+    color: rgb(205, 215, 225);
     text-decoration: none;
   } */
 </style>

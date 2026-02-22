@@ -19,92 +19,317 @@
 
 <html lang="en">
 	<head>
-				<!-- %sveltekit.head% -->
+		<!-- %sveltekit.head% -->
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>War Thunder Aircraft Performance Calculator</title>
-		<meta name="description" content="Graphs of engine power and power/weight of all piston aircraft in War Thunder, at all altitudes.">
+		<meta
+			name="description"
+			content="Graphs of engine power and power/weight of all piston aircraft in War Thunder, at all altitudes."
+		/>
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<!-- %sveltekit.head% -->
-
 	</head>
 	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents">
-			%sveltekit.body%
-		</div>
+		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
 
 <style>
-	@font-face {
-		font-family: symbols_skyquake;
-		src: url('fonts/symbols_skyquake.ttf') format('truetype');
-		unicode-range: U+2417-2900, U+F059, U+22E0, U+25D0;
-	}
-	@font-face {
-		font-family: 'Inter';
-		src: url('fonts/InterVariable.ttf') format('truetype');
-	}
-	:root {
-		--bg-col: #0d1116; /* Define your background color here */
-	}
-	/* #0E1012; */
-	*,
-	*::before,
-	*::after {
-		box-sizing: border-box;
-	}
-	* {
-		margin: 0;
-	}
-	html {
-		width: --screen-width;
-		font-size: calc(var(--screen-width) * 0.009);
+		@font-face {
+			font-family: symbols_skyquake;
+			src: url('fonts/symbols_skyquake.ttf') format('truetype');
+			unicode-range: U+2417-2900, U+F059, U+22E0, U+25D0;
+		}
+		@font-face {
+			font-family: 'Inter';
+			src: url('fonts/InterVariable.ttf') format('truetype');
+		}
 
-		background-color: var(--bg-col);
-		/* color: #F2F5FA; */
-		color: #fdfdfde6;
-		overflow-x: scroll;
-	}
-	/* #fdfdfde6; */
-	/* #fdfdfde6; */
-	input[type='number'] {
-		appearance: none;
-		-moz-appearance: textfield;
-	}
-	body,
-	button,
-	.legendtext,
-	.draglayer.cursor-crosshair,
-	.hoverlayer,
-	.nsewdrag.drag,
-	.infolayer {
-		font-family: symbols_skyquake, Inter, 'Segoe UI', 'Courier New', Roboto, Tahoma,
-			'Comic Sans MS', sans-serif !important;
-	}
+		@font-face {
+			font-family: 'EBGaramond';
+			src: url('fonts/EBGaramond-VariableFont_wght.ttf') format('truetype');
+		}
 
-	button {
-		cursor: pointer;
-		padding: 0;
-	}
-	.modebar-container {
-		position: relative;
-		right: 100% !important;
-	}
+		@font-face {
+			font-family: 'CrimsonPro';
+			src: url('fonts/CrimsonPro-VariableFont_wght.ttf') format('truetype');
+		}
 
-	.modebar.vertical {
-		top: 3.5rem !important;
-		left: 2rem;
-	}
+		
+		:root {
+			--bg-col: rgb(13, 17, 22); /* Define your background color here */
+			
+		}
+		/* #0E1012; */
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+		}
+		* {
+			margin: 0;
+		}
+		html {
+			width: --screen-width;
+			font-size: calc(var(--screen-width) * 0.009);
+			background-color: var(--bg-col);
+			/* color: #F2F5FA; */
+			color: rgb(205, 215, 225);
+			/* overflow-x: scroll; */
+			--sv-bg: rgb(30, 38, 46);
+			--sv-placeholder-color: #ffffff;
+			--sv-dropdown-height: 23rem;
+			--sv-dropdown-border: 0;
+			--sv-border: 0;
+			--sv-border-radius: 0;
+			--sv-general-padding: 0;
+			--sv-item-wrap-padding: 0px 0px 0px 0px;
+			scrollbar-width: thick;
+			scrollbar-color: rgba(0, 111, 161, 1) rgba(30, 38, 46, 1);
+		}
+		/* Styled scrollbar for webkit browsers */
+		&::-webkit-scrollbar {
+			width: 0.8rem;
+		}
+		
+		&::-webkit-scrollbar-track {
+			background: rgba(30, 38, 46, 1);
+		}
+		
+		&::-webkit-scrollbar-thumb {
+			background: rgba(0, 111, 161, 1);
+			border-radius: 0.2rem;
+		}
 
-	div.modebar-group {
-		padding: 0 !important;
-	}
 
-	a.modebar-btn {
-		height: 2.4rem !important;
-		font-size: 1.2rem !important;
-		aspect-ratio: 1/1;
-		border: 2px solid transaprent;
-	}
+		/* #fdfdfde6; */
+		/* #fdfdfde6; */
+		input[type='number'] {
+			appearance: none;
+			-moz-appearance: textfield;
+		}
+		/* below classes are for plotly */
+		body,
+		button,
+		.legendtext,
+		.draglayer.cursor-crosshair,
+		.hoverlayer,
+		.nsewdrag.drag,
+		.infolayer {
+			font-family: symbols_skyquake, Inter, 'Segoe UI', 'Courier New', Roboto, Tahoma,
+				'Comic Sans MS', sans-serif !important;
+		}
+		img {
+			max-width: 100%;
+			max-height: 100%;
+		}
+		button {
+			width: 100%;
+			/* height: 100%; */
+			border: transparent;
+			color: rgb(205, 215, 225);
+			font-size: inherit;
+			cursor: pointer;
+			padding: 0;
+			background-color: rgb(30, 38, 46);
+		}
+		label {
+			height: 100%;
+			display: flex;
+			align-items: center;
+			padding-left: 0.5rem;
+		}
+
+
+		.input-field {
+			height: 100%;
+			font-family: inherit;
+			border-width: 0;
+			text-align: left;
+			font-size: inherit;
+			color: rgb(205, 215, 225);
+			background-color: rgb(30, 38, 46);
+		}
+
+
+		.b-select-field {
+			display: flex;
+			height: 100%;
+			align-items: center;
+			padding-left: 0.2rem;
+		}
+		.b-select-dropdown {
+			background-color: rgba(47, 62, 73, 1);
+			padding: 0.05rem;
+			border-left: solid 0.1rem rgba(13, 136, 9, 1);
+			max-height: 12rem;
+			overflow-y: auto;  
+		}
+		.b-select-item {
+			padding:  0.2rem 0 0.2rem 0.4rem;
+			
+		}
+		.caret-svg{
+			margin-left: auto;
+			height: 0.7rem;
+		}
+
+
+		.b-checkbox-root {
+			height: min-content;
+			width: min-content
+		}
+		.b-checkbox-indicator {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 0.9rem;
+			height: 0.9rem;
+			background-color: rgb(205, 215, 225);
+			color: rgb(205, 215, 225);
+		}
+		.b-checkbox-indicator[data-state="checked"] {
+	    background-color: rgba(0, 111, 161, 1) /* Background when checked */
+		}
+
+		.b-switch-root{
+			width: 3.5rem;
+			display: flex;
+			align-items: center;
+		}
+		#auto_calcsvg, #manual_calcsvg{
+			height: 100%;
+			width: 100%;
+		}
+
+		.b-switch-root[data-state="checked"] > #auto_calcsvg {
+	    background-color: rgba(0, 111, 161, 1); /* Background when checked */
+		}
+		.b-switch-root[data-state="unchecked"] > #manual_calcsvg {
+	    background-color: rgba(0, 111, 161, 1); /* Background when checked */
+		}
+
+		.tooltip_button {
+			border: 0;
+			margin-left: auto;
+			height: 100%;
+			width: 0.8rem;
+			background: linear-gradient(
+				90deg,
+				rgba(0, 0, 0, 0) 0%,
+				rgba(0, 111, 161, 0.1) 50%,
+				rgba(0, 111, 161, 0.3) 100%
+			);
+			color: rgba(0, 111, 161, 1);
+			font-size: inherit;
+		}
+		.tooltip_button:hover,
+		.tooltip_button:focus {
+			background: linear-gradient(
+				90deg,
+				rgba(0, 0, 0, 0) 0%,
+				rgba(13, 136, 9, 0.3) 50%,
+				rgba(13, 136, 9, 0.5) 80%,
+				rgba(13, 136, 9, 1) 100%
+			);
+			color: rgba(13, 136, 9, 1);
+			outline: transparent;
+			font-weight: 700;
+		}
+		.tooltip {
+			background-color: rgba(17, 17, 17, 0.93);
+			border-top: 0.15rem solid rgba(13, 136, 9, 1);
+			border-left: 0.15rem solid rgba(13, 136, 9, 1);
+			font-size: 0.91rem;
+			font-weight: 400;
+			padding: 0.5rem;
+		}
+
+
+		input:focus,
+		input:hover,
+		button:focus,
+		button:hover,
+		.b-select-item:hover,
+		.b-select-item:focus,
+		label:hover > #plane_autocomplete,
+		.modebar-btn:hover > .icon,
+		.modebar-btn:focus > .icon,
+		.legendtoggle:hover,
+		.legendtoggle:focus{
+			outline: 0.1rem solid rgba(13, 136, 9, 1);
+		}
+		.traces{
+			width: 95%;
+		}
+
+		.b-checkbox-indicator:focus,
+		.b-checkbox-indicator:hover,
+		label:hover > .b-checkbox-root > .b-checkbox-indicator{
+			outline: 0.2rem solid rgba(13, 136, 9, 1);
+		}
+
+		#home_img:hover,
+		#home_img:focus,
+		#home_button:hover,
+		#home_button:focus,
+		#discord_icon:hover,
+		#discord_icon:focus,
+		#github_icon:hover,
+		#github_icon:focus,
+		#calculator_link:hover,
+		#calculator_link:focus,
+		#guide_link:hover,
+		#guide_link:focus{
+			outline: 0.1rem solid rgba(255, 0, 0, 1);
+		}
+		a,
+		input,
+		label,
+		button,
+		.b-select-item,
+		#home_img,
+		#home_button,
+		#discord_icon,
+		#github_icon {
+			cursor: pointer;
+			outline: 0.1rem solid transparent;
+			transition: outline-color 0.2s;
+		}
+		#calculator_link,
+		#guide_link {
+			border: 0.1rem solid rgba(47, 62, 73, 1);
+		}
+		
+		grid-item.text {
+			padding-left: 0.5rem;
+		}
+		grid-item {
+			color: rgb(174, 177, 184);
+			display: flex;
+			flex-wrap: nowrap;
+			align-items: center;
+		}
+
+
+		/* Modebar are plotly icons btw.*/
+		.modebar-container {
+			position: relative;
+			right: 100% !important;
+		}
+		.modebar.vertical {
+			top: 3.5rem !important;
+			left: 2rem;
+		}
+		div.modebar-group {
+			padding: 0 !important;
+		}
+		a.modebar-btn {
+			height: 2.4rem !important;
+			font-size: 1.2rem !important;
+			aspect-ratio: 1/1;
+			border: 2px solid transaprent;
+		}
+
 </style>

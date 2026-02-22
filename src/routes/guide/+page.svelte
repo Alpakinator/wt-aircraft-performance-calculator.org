@@ -1,6 +1,7 @@
 <script lang='ts'>
     import Home_Top_panel from '$lib/home_top_panel.svelte';
     import Guide from '$lib/guide.svelte';
+    	import LogosSvelteKit from '~icons/logos/svelte-kit'
 
   </script>
 
@@ -12,13 +13,20 @@
 
 
   <div id="footer">
-    <span>Copyright © 2024 Alpakinator. All Rights Reserved.</span><br/>
-    <span>Made with SvelteKit</span>
+    <span>Copyright © 2025 Alpakinator. All Rights Reserved.</span>
+    <span>Made with  &nbsp <LogosSvelteKit /></span> 
   </div>
 </div>
 
 
 <style>
+    span{
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+
+  }
   .page_body {
     display: flex; /* or grid */
     flex-direction: column;

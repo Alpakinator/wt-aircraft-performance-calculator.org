@@ -4,6 +4,7 @@
   import Guide from '$lib/guide.svelte';
   import Features from '$lib/features.svelte';
   import Entrance from '$lib/entrance.svelte'
+	import LogosSvelteKit from '~icons/logos/svelte-kit'
 </script>
 
 <svelte:head>
@@ -27,13 +28,20 @@
   <Features/>
 
   <div id="footer">
-    <span>Copyright © 2024 Alpakinator. All Rights Reserved.</span><br/>
-    <span>Made with SvelteKit</span>
+    <span>Copyright © 2025 Alpakinator. All Rights Reserved.</span>
+    <span>Made with &nbsp <LogosSvelteKit /></span> 
   </div>
 </div>
 
 
 <style>
+  span{
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+
+  }
   .page_body {
     display: flex; /* or grid */
     flex-direction: column;
@@ -41,7 +49,6 @@
     align-items: center;
     text-align: center;
     padding-top: 0.5rem;
-    /* max-width: 140; */
     margin-left: auto;
     margin-right: auto;
     padding-left: 0.5rem;
