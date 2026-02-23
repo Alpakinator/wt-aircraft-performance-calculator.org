@@ -305,7 +305,7 @@
 		}
 		// Create WT icon for each plane
 		var wt_comp_icon =
-			'<div class="WT_icon" style = "position: relative; grid-column: 1 / span 4; grid-row: 1 / span 2; background-color: rgba(47, 62, 73, 1); width: 100%; aspect-ratio: 3.1; height: 100%; border-left: 0.2rem solid ' +
+			'<div class="WT_icon" style = "position: relative; grid-column: 1 / span 4; grid-row: 1 / span 2; background-color: rgba(47, 62, 73, 1); width: 100%; aspect-ratio: 3.1; border-left: 0.2rem solid ' +
 			traceColor +
 			';"/>' +
 			'<img style ="position: absolute; bottom: 0%; left: 3%; height: 90%; width: auto;" src="' +
@@ -715,4 +715,54 @@
 		position: absolute;
 		left: 11.7rem;
 	} */
+
+	@media (max-width: 900px) and (hover: none) and (pointer: coarse) {
+		.autocomplete_panel {
+			grid-template-columns: 1fr;
+		}
+
+		:global(.svelecte.plane-names .sv_dropdown) {
+			top: calc(100% + 0.1rem) !important;
+			bottom: auto !important;
+		}
+
+		#autocomplete_title {
+			grid-column: 1;
+			padding-left: 0.3rem;
+			padding-right: 0.3rem;
+		}
+
+		#plane_autocomplete {
+			width: 50%;
+		}
+
+		.plane_bar {
+			grid-template-columns: repeat(8, 1fr);
+			grid-template-rows: 1fr 1fr 0.7fr;
+		}
+
+		#fuel-percent {
+			grid-column: 5 / span 2;
+			justify-content: center;
+		}
+
+		#booster-toggle {
+			grid-column: 7 / span 2;
+			justify-content: center;
+		}
+
+		:global(#version-select) {
+			grid-column: 3 / span 6;
+			padding-left: 0;
+			padding-right: 0;
+		}
+
+		.remove-btn {
+			grid-column: 1;
+		}
+
+		.add-btn {
+			grid-column: 2;
+		}
+	}
 </style>

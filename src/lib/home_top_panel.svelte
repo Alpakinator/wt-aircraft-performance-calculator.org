@@ -74,6 +74,35 @@
 		aspect-ratio: 1;
 	}
 
+	@media (max-width: 900px) and (hover: none) and (pointer: coarse) {
+		.button-panel {
+			grid-template-columns: 25vw minmax(0, 1fr) auto auto;
+			column-gap: 0.7rem;
+		}
+
+		#home_img {
+			width: 25vw;
+			height: 25vw;
+			max-width: 25vw;
+			max-height: 25vw;
+			margin-right: 0.2rem;
+			margin-bottom: 0;
+		}
+
+		#the_title {
+			font-size: clamp(1.5rem, 6vw, 2rem);
+			line-height: 1.05;
+			margin-right: 0.2rem;
+		}
+
+		#github_button,
+		#discord_button {
+			width: clamp(2rem, 10vw, 2.8rem);
+			margin-right: 0;
+			margin-bottom: 0;
+		}
+	}
+
 	/* #github_text{
     font-size: 0.8rem;
     position: absolute;

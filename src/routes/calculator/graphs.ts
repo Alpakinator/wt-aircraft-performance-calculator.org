@@ -968,6 +968,44 @@ function getMinMax(values: number[]): { min: number; max: number } {
 	return { min: minValue, max: maxValue };
 }
 
+function isMobilePlotViewport(): boolean {
+	if (typeof window === 'undefined') {
+		return false;
+	}
+
+	return window.matchMedia('(max-width: 900px)').matches;
+}
+
+function getPlotTypography(isMobile: boolean) {
+	if (isMobile) {
+		return {
+			title: 14,
+			legend: 10,
+			hover: 11,
+			modebar: 16,
+			annotation: 11,
+			axis: 10,
+			axisTitle: 10,
+			tick: 9,
+			sliderCurrent: 11,
+			margin: { l: 18, r: 6, b: 16, t: 72, pad: 2 }
+		};
+	}
+
+	return {
+		title: 22,
+		legend: 14,
+		hover: 14,
+		modebar: 24,
+		annotation: 14,
+		axis: 18,
+		axisTitle: 18,
+		tick: 16,
+		sliderCurrent: 16,
+		margin: { l: 60, r: 25, b: 65, t: 60, pad: 5 }
+	};
+}
+
 export function plotly_generator(
 	final_data,
 	all_values,
@@ -989,6 +1027,8 @@ export function plotly_generator(
 ) {
 	// console.log(final_data);
 	let font_fam = 'Inter';
+	const isMobileViewport = isMobilePlotViewport();
+	const plotTypography = getPlotTypography(isMobileViewport);
 	const alt_vals = final_data[0]['Altitude [m]'];
 	final_data.shift();
 	// console.log(final_data)
@@ -1012,6 +1052,10 @@ export function plotly_generator(
 		no_bugwarning_y,
 		no_bugwarning_x_anchor,
 		no_bugwarning_y_anchor;
+	const axisTitleXAnnotationX = isMobileViewport ? 1 : 1;
+	const axisTitleXAnnotationY = isMobileViewport ? -0.06 : -0.04;
+	const axisTitleYAnnotationX = isMobileViewport ? -0.055 : -0.055;
+	const axisTitleYAnnotationY = 1;
 	let air_temp_info = 'Temperature at sea level: ' + air_temp + ' ' + air_temp_unit;
 	let plane: number;
 	let colo_index = 0;
@@ -1170,37 +1214,68 @@ export function plotly_generator(
 		paper_bgcolor: bg_col,
 		plot_bgcolor: bg_col,
 		autosize: true,
-		title: { text: title, font: { size: 22 }, x: 0.5 },
+		title: {
+			text: title,
+			font: { size: plotTypography.title },
+			x: 0.5,
+			y: isMobileViewport ? 0.93 : 1,
+			yanchor: 'top'
+		},
 		legend: {
 			yanchor: 'top',
 			y: 1,
 			xanchor: 'right',
 			x: 1,
-			font: { size: 14, family: font_fam },
+			font: { size: plotTypography.legend, family: font_fam },
 			title: null
 		},
 		showlegend: true,
-		hoverlabel: { font: { color: '#fdfdfde6', size: 14 }, bordercolor: '#142E40', borderwidth: 1 },
+		hoverlabel: {
+			font: { color: '#fdfdfde6', size: plotTypography.hover },
+			bordercolor: '#142E40',
+			borderwidth: 1
+		},
 		hovermode: hoverstyle,
 		font: { family: font_fam, color: '#fdfdfde6' },
-		margin: { l: 110, r: 25, b: 65, t: 60, pad: 5 },
+		margin: plotTypography.margin,
 		modebar: {
-			orientation: 'v',
-			xanchor: 'left',
-			yanchor: 'bottom',
+			orientation: isMobileViewport ? 'h' : 'v',
 			bgcolor: 'rgba(0,0,0,0)',
 			color: 'rgb(205, 215, 225)',
 			activecolor: 'rgb(0, 111, 161)',
-			font: { size: 24 },
+			font: { size: plotTypography.modebar },
 			add: ['hoverclosest', 'hovercompare'],
 			remove: ['resetScale2d']
 		},
 		dragmode: 'pan',
 		annotations: [
 			{
+				text: x_axis_title,
+				showarrow: false,
+				font: { size: plotTypography.axisTitle },
+				x: axisTitleXAnnotationX,
+				y: axisTitleXAnnotationY,
+				xref: 'paper',
+				yref: 'paper',
+				xanchor: 'right',
+				yanchor: 'top'
+			},
+			{
+				text: y_axis_title,
+				showarrow: false,
+				textangle: -90,
+				font: { size: plotTypography.axisTitle },
+				x: axisTitleYAnnotationX,
+				y: axisTitleYAnnotationY,
+				xref: 'paper',
+				yref: 'paper',
+				xanchor: 'left',
+				yanchor: 'top'
+			},
+			{
 				text: air_temp_info,
 				showarrow: false,
-				font: { size: 14 },
+				font: { size: plotTypography.annotation },
 				x: 0,
 				y: 1,
 				xref: 'paper',
@@ -1212,7 +1287,7 @@ export function plotly_generator(
 				text: "Do not use in War Thunder bug reports, because it's not <br>a valid source. Otherwise Gaijin can ban datamining forever!",
 				opacity: 0.15,
 				showarrow: false,
-				font: { size: 14, color: 'white', family: font_fam },
+				font: { size: plotTypography.annotation, color: 'white', family: font_fam },
 				x: no_bugwarning_x,
 				y: no_bugwarning_y,
 				xref: 'paper',
@@ -1229,26 +1304,32 @@ export function plotly_generator(
 			zerolinewidth: 3,
 			maxallowed: highest_x * 2,
 			minallowed: 0,
-			font: { size: 18, family: font_fam, color: '#fdfdfde6' },
-			title: { text: x_axis_title, font: { size: 18 }, standoff: 20 },
+			font: { size: plotTypography.axis, family: font_fam, color: '#fdfdfde6' },
+			title: { text: '' },
 			range: [lowest_x, highest_x],
 			// autorange: true,
 			dtick: x_axis_tick,
-			tickfont: { size: 16 }
+			ticklabelposition: 'inside',
+			ticks: 'inside',
+			ticklabelstandoff: 0,
+			tickfont: { size: plotTypography.tick }
 		},
 		yaxis: {
 			gridcolor: 'rgba(47, 62, 73, 0.3)',
 			gridwidth: 0.4,
 			zerolinecolor: 'rgba(47, 62, 73, 0.3)',
 			zerolinewidth: 3,
-			font: { size: 18, family: font_fam, color: '#fdfdfde6' },
-			title: { text: y_axis_title, font: { size: 18 }, standoff: 10 },
+			font: { size: plotTypography.axis, family: font_fam, color: '#fdfdfde6' },
+			title: { text: '' },
 			range: [lowest_y, highest_y],
 			maxallowed: highest_y * 2,
 			minallowed: 0,
 			// autorange: true,
 			dtick: y_axis_tick,
-			tickfont: { size: 16 }
+			ticklabelposition: 'inside',
+			ticks: 'inside',
+			ticklabelstandoff: 0,
+			tickfont: { size: plotTypography.tick }
 		},
 		images: [
 			{
@@ -1315,6 +1396,8 @@ export function plotly_generator_with_slider(
 	bg_col: string
 ): void {
 	const font_fam = 'Inter';
+	const isMobileViewport = isMobilePlotViewport();
+	const plotTypography = getPlotTypography(isMobileViewport);
 
 	// Define types for our lookup table
 	interface TraceData {
@@ -1570,7 +1653,7 @@ export function plotly_generator_with_slider(
 				: performance_type === 'thrust'
 					? 'Engine thrust'
 					: 'Thrust / Weight';
-	const title = `${metricTitle} at different altitudes (use slider to change airspeed)`;
+	const title = `${metricTitle} at altitudes`;
 
 	const x_axis_title = axis_layout
 		? performance_type === 'power'
@@ -1602,6 +1685,10 @@ export function plotly_generator_with_slider(
 	const no_bugwarning_y = axis_layout ? 0 : -0.008;
 	const no_bugwarning_x_anchor = 'right';
 	const no_bugwarning_y_anchor = 'bottom';
+	const axisTitleXAnnotationX = isMobileViewport ? 1 : 1;
+	const axisTitleXAnnotationY = isMobileViewport ? -0.06 : -0.0;
+	const axisTitleYAnnotationX = isMobileViewport ? -0.055 : -0.03;
+	const axisTitleYAnnotationY = 1;
 
 	// Air temperature info message
 	const air_temp_info = `Temperature at sea level: ${air_temp} ${air_temp_unit}`;
@@ -1612,37 +1699,68 @@ export function plotly_generator_with_slider(
 		paper_bgcolor: bg_col,
 		plot_bgcolor: bg_col,
 		autosize: true,
-		title: { text: title, font: { size: 22 }, x: 0.5 },
+		title: {
+			text: title,
+			font: { size: plotTypography.title },
+			x: 0.5,
+			y: isMobileViewport ? 0.93 : 1,
+			yanchor: 'top'
+		},
 		legend: {
 			yanchor: 'top',
 			y: 1,
 			xanchor: 'right',
 			x: 1,
-			font: { size: 14, family: font_fam },
+			font: { size: plotTypography.legend, family: font_fam },
 			title: null
 		},
 		showlegend: true,
-		hoverlabel: { font: { color: '#fdfdfde6', size: 14 }, bordercolor: '#142E40', borderwidth: 1 },
+		hoverlabel: {
+			font: { color: '#fdfdfde6', size: plotTypography.hover },
+			bordercolor: '#142E40',
+			borderwidth: 1
+		},
 		hovermode: hoverstyle,
 		font: { family: font_fam, color: '#fdfdfde6' },
-		margin: { l: 110, r: 25, b: 100, t: 60, pad: 5 },
+		margin: { ...plotTypography.margin, b: isMobileViewport ? 64 : 100 },
 		modebar: {
-			orientation: 'v',
-			xanchor: 'left',
-			yanchor: 'bottom',
+			orientation: isMobileViewport ? 'h' : 'v',
 			bgcolor: 'rgba(0,0,0,0)',
 			color: 'rgb(205, 215, 225)',
 			activecolor: 'rgb(0, 111, 161)',
-			font: { size: 24 },
+			font: { size: plotTypography.modebar },
 			add: ['hoverclosest', 'hovercompare'],
 			remove: ['resetScale2d']
 		},
 		dragmode: 'pan',
 		annotations: [
 			{
+				text: x_axis_title,
+				showarrow: false,
+				font: { size: plotTypography.axisTitle },
+				x: axisTitleXAnnotationX,
+				y: axisTitleXAnnotationY,
+				xref: 'paper',
+				yref: 'paper',
+				xanchor: 'right',
+				yanchor: 'top'
+			},
+			{
+				text: y_axis_title,
+				showarrow: false,
+				textangle: -90,
+				font: { size: plotTypography.axisTitle },
+				x: axisTitleYAnnotationX,
+				y: axisTitleYAnnotationY,
+				xref: 'paper',
+				yref: 'paper',
+				xanchor: 'left',
+				yanchor: 'top'
+			},
+			{
 				text: air_temp_info,
 				showarrow: false,
-				font: { size: 14 },
+				font: { size: plotTypography.annotation },
 				x: 0,
 				y: 1,
 				xref: 'paper',
@@ -1654,7 +1772,7 @@ export function plotly_generator_with_slider(
 				text: "Do not use in War Thunder bug reports, because it's not <br>a valid source. Otherwise Gaijin can ban datamining forever!",
 				opacity: 0.15,
 				showarrow: false,
-				font: { size: 14, color: 'white', family: font_fam },
+				font: { size: plotTypography.annotation, color: 'white', family: font_fam },
 				x: no_bugwarning_x,
 				y: no_bugwarning_y,
 				xref: 'paper',
@@ -1671,24 +1789,30 @@ export function plotly_generator_with_slider(
 			zerolinewidth: 3,
 			maxallowed: highest_x * 2,
 			minallowed: 0,
-			font: { size: 18, family: font_fam, color: '#fdfdfde6' },
-			title: { text: x_axis_title, font: { size: 18 }, standoff: 20 },
+			font: { size: plotTypography.axis, family: font_fam, color: '#fdfdfde6' },
+			title: { text: '' },
 			range: [lowest_x, highest_x],
 			dtick: x_axis_tick,
-			tickfont: { size: 16 }
+			ticklabelposition: 'inside',
+			ticks: 'inside',
+			ticklabelstandoff: 0,
+			tickfont: { size: plotTypography.tick }
 		},
 		yaxis: {
 			gridcolor: 'rgba(47, 62, 73, 0.5)',
 			gridwidth: 0.4,
 			zerolinecolor: 'rgba(47, 62, 73, 0.5)',
 			zerolinewidth: 3,
-			font: { size: 18, family: font_fam, color: '#fdfdfde6' },
-			title: { text: y_axis_title, font: { size: 18 }, standoff: 10 },
+			font: { size: plotTypography.axis, family: font_fam, color: '#fdfdfde6' },
+			title: { text: '' },
 			range: [lowest_y, highest_y],
 			maxallowed: highest_y * 2,
 			minallowed: 0,
 			dtick: y_axis_tick,
-			tickfont: { size: 16 }
+			ticklabelposition: 'inside',
+			ticks: 'inside',
+			ticklabelstandoff: 0,
+			tickfont: { size: plotTypography.tick }
 		},
 		images: [
 			{
@@ -1704,29 +1828,17 @@ export function plotly_generator_with_slider(
 				yref: 'paper'
 			}
 		],
-		updatemenus: [
-			{
-				x: 0,
-				y: 0,
-				yanchor: 'top',
-				xanchor: 'left',
-				showactive: false,
-				direction: 'left',
-				type: 'buttons',
-				pad: { t: 87, r: 10 }
-			}
-		],
 		sliders: [
 			{
-				pad: { l: 0, t: 30, b: 10, r: 0 },
+				pad: { l: 0, t: 10, b: 6, r: 0 },
 				currentvalue: {
 					visible: true,
 					id: 'speed_annotation',
 					prefix: speed_type + ' Speed: ',
 					suffix: ' ' + speed_unit,
 					xanchor: 'left',
-					offset: 5,
-					font: { size: 16, color: '#fdfdfde6' }
+					offset: 0,
+					font: { size: plotTypography.sliderCurrent, color: '#fdfdfde6' }
 				},
 				len: 1,
 				x: 0,

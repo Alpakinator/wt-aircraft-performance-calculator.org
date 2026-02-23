@@ -2,14 +2,23 @@
 
 <script>
 	function updateScreenWidth() {
-		const width = window.screen.width;
-		const height = window.screen.height;
-		const devicePixelRatio = window.devicePixelRatio || 1;
-		// console.log(config.privacy.resistFingerprinting);
-		const actualWidth = width * devicePixelRatio;
-		const actualHeight = height * devicePixelRatio;
+		const isTouchMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
-		const screenWidth = actualWidth > actualHeight ? actualWidth : actualHeight;
+		let screenWidth;
+		if (isTouchMobile) {
+			const viewportWidth = window.visualViewport?.width || document.documentElement.clientWidth;
+			const viewportHeight = window.visualViewport?.height || document.documentElement.clientHeight;
+			screenWidth = viewportWidth > viewportHeight ? viewportWidth : viewportHeight;
+		} else {
+			const width = window.screen.width;
+			const height = window.screen.height;
+			const devicePixelRatio = window.devicePixelRatio || 1;
+			const actualWidth = width * devicePixelRatio;
+			const actualHeight = height * devicePixelRatio;
+
+			screenWidth = actualWidth > actualHeight ? actualWidth : actualHeight;
+		}
+
 		document.documentElement.style.setProperty('--screen-width', screenWidth + 'px');
 	}
 	updateScreenWidth();
@@ -87,6 +96,12 @@
 		--bits-select-content-available-width: 10rem; */
 		scrollbar-width: thick;
 		scrollbar-color: rgba(0, 111, 161, 1) rgba(30, 38, 46, 1);
+	}
+
+	@media (max-width: 900px) {
+		html {
+			font-size: clamp(13px, 3.8vw, 16px);
+		}
 	}
 	/* Styled scrollbar for webkit browsers */
 	&::-webkit-scrollbar {
@@ -212,9 +227,15 @@
 
 	.popover_button {
 		border: 0;
-		margin-left: auto;
 		height: 100%;
-		width: 0.8rem;
+		width: 0.9em;
+		min-width: 0.9em;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		align-self: stretch;
+		line-height: 1;
+		font-size: 1.1em;
 		background: linear-gradient(
 			90deg,
 			rgba(0, 0, 0, 0) 0%,
@@ -222,7 +243,7 @@
 			rgba(0, 111, 161, 0.3) 100%
 		);
 		color: rgba(0, 111, 161, 1);
-		font-size: inherit;
+		font-weight: 600;
 	}
 	.popover_button:hover,
 	.popover_button:focus {
@@ -244,6 +265,11 @@
 		font-size: 0.91rem;
 		font-weight: 400;
 		padding: 0.5rem;
+		z-index: 6000;
+		max-inline-size: calc(100vw - 1rem);
+		white-space: normal;
+		overflow-wrap: anywhere;
+		word-break: break-word;
 	}
 
 	input:focus,
@@ -323,6 +349,20 @@
 		top: 3.5rem !important;
 		left: 2rem;
 	}
+
+	@media (max-width: 900px) {
+		.modebar-container {
+			left: 0 !important;
+			right: 0 !important;
+		}
+
+		.modebar {
+			top: 0.2rem !important;
+			right: 0 !important;
+			left: auto !important;
+		}
+	}
+
 	div.modebar-group {
 		padding: 0 !important;
 	}

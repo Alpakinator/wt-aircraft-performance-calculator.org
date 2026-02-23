@@ -21,33 +21,44 @@
 	}
 </script>
 
-<Popover.Root bind:open={isOpen}>
-	<Popover.Trigger
-		class="popover_button"
-		onmouseenter={handleMouseEnter}
-		onmouseleave={handleMouseLeave}
-	>
-		?
-	</Popover.Trigger>
-	<Popover.Portal>
-		<Popover.Content
-			class="popover"
-			side="right"
-			align="start"
-			sideOffset={0}
-			forceMount
-			onmouseenter={() => clearTimeout(hoverTimeout)}
+<div class="popover_host">
+	<Popover.Root bind:open={isOpen}>
+		<Popover.Trigger
+			class="popover_button"
+			onmouseenter={handleMouseEnter}
 			onmouseleave={handleMouseLeave}
 		>
-			{#snippet child({ wrapperProps, props, open })}
-				{#if open}
-					<div {...wrapperProps}>
-						<div {...props} transition:slide={{ duration: 100 }}>
-							{@render children()}
+			?
+		</Popover.Trigger>
+		<Popover.Portal>
+			<Popover.Content
+				class="popover"
+				side="right"
+				align="start"
+				sideOffset={0}
+				forceMount
+				onmouseenter={() => clearTimeout(hoverTimeout)}
+				onmouseleave={handleMouseLeave}
+			>
+				{#snippet child({ wrapperProps, props, open })}
+					{#if open}
+						<div {...wrapperProps}>
+							<div {...props} transition:slide={{ duration: 100 }}>
+								{@render children()}
+							</div>
 						</div>
-					</div>
-				{/if}
-			{/snippet}
-		</Popover.Content>
-	</Popover.Portal>
-</Popover.Root>
+					{/if}
+				{/snippet}
+			</Popover.Content>
+		</Popover.Portal>
+	</Popover.Root>
+</div>
+
+<style>
+	.popover_host {
+		margin-left: auto;
+		display: flex;
+		align-items: stretch;
+		align-self: stretch;
+	}
+</style>

@@ -1174,6 +1174,173 @@
 		align-items: center;
 		gap: 0rem;
 	}
+
+	@media (max-width: 900px) {
+		.ui {
+			position: fixed;
+			top: 50dvh;
+			left: 0;
+			right: 0;
+			width: 100vw;
+			height: 50dvh;
+			padding: 0.4rem;
+			padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+			z-index: 2;
+			overflow-y: auto;
+			overflow-x: hidden;
+			overscroll-behavior: contain;
+			-webkit-overflow-scrolling: touch;
+			--mobile-control-gap: 0.2rem;
+			--mobile-panel-padding-x: 0.8rem;
+			--mobile-square-size: calc(
+				(100vw - var(--mobile-panel-padding-x) - (3 * var(--mobile-control-gap))) / 4
+			);
+			--mobile-row-height: calc(var(--mobile-square-size) / 3);
+		}
+
+		.graph {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			width: 100vw;
+			height: 50dvh;
+			z-index: 1;
+		}
+
+		.button-panel {
+			grid-template-columns: repeat(4, 1fr);
+			grid-template-rows: repeat(3, var(--mobile-row-height));
+			grid-gap: var(--mobile-control-gap);
+		}
+
+		#home_button {
+			grid-column: 1 / span 1;
+			grid-row: 1 / span 3;
+			width: 100%;
+			height: 100%;
+			aspect-ratio: 1 / 1;
+		}
+
+		#axis_layout {
+			grid-column: 2 / span 2;
+			grid-row: 1;
+		}
+
+		#auto_calc {
+			grid-column: 2 / span 1;
+			grid-row: 2;
+			width: fit-content;
+			min-width: 0;
+			height: 100%;
+			overflow: hidden;
+			display: flex;
+			align-items: center;
+		}
+
+		#auto_calc :global(.b-switch-root) {
+			height: 100%;
+			display: inline-flex;
+			align-items: center;
+			padding-top: 0;
+			padding-bottom: 0;
+		}
+
+		#auto_calc :global(#auto_calcsvg),
+		#auto_calc :global(#manual_calcsvg) {
+			width: calc(var(--mobile-row-height) - 0.3rem);
+			height: calc(var(--mobile-row-height) - 0.3rem);
+		}
+
+		#axis_scale {
+			grid-column: 2 / span 2;
+			grid-row: 3;
+			justify-self: start;
+		}
+
+		#post-form-button {
+			grid-column: 4;
+			grid-row: 1 / span 3;
+			width: 100%;
+			height: 100%;
+			aspect-ratio: 1 / 1;
+		}
+
+		#engine_power_form {
+			display: flex !important;
+			flex-direction: column;
+			gap: 0.2rem;
+		}
+
+		#perf-type,
+		#power_unit,
+		#weight_unit,
+		#power_modes,
+		#speed,
+		#max_alt,
+		#air_temperature {
+			grid-column: auto;
+			grid-row: auto;
+			height: auto;
+			min-height: var(--mobile-row-height);
+		}
+
+		#power_modes {
+			padding-left: 0.3rem;
+			flex-wrap: wrap;
+			row-gap: 0.15rem;
+		}
+
+		:global(#performance-select) {
+			width: 100%;
+		}
+
+		:global(#fullscreen_switch) {
+			opacity: 0.85;
+		}
+	}
+
+	@media (max-width: 900px) and (orientation: landscape) {
+		:global(:root) {
+			--landscape-ui-width: min(26rem, 50vw);
+		}
+
+		:global(html),
+		:global(body) {
+			overflow: hidden;
+		}
+
+		.ui {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: auto;
+			width: var(--landscape-ui-width);
+			height: 100dvh;
+			box-sizing: border-box;
+			padding: 0.4rem 0.8rem 0.8rem;
+			--mobile-control-gap: 0.2rem;
+			--mobile-panel-padding-x: 1.6rem;
+			--mobile-square-size: calc(
+				(var(--landscape-ui-width) - var(--mobile-panel-padding-x) - (3 * var(--mobile-control-gap))) /
+					4
+			);
+			--mobile-row-height: calc(var(--mobile-square-size) / 3);
+			z-index: 2;
+			overflow-y: auto;
+			overflow-x: hidden;
+		}
+
+		.graph {
+			position: fixed;
+			top: 0;
+			left: var(--landscape-ui-width);
+			right: 0;
+			width: calc(100vw - var(--landscape-ui-width));
+			height: 100dvh;
+			z-index: 1;
+		}
+	}
 	/*For hiding arrows on integer fields*/
 	input::-webkit-outer-spin-button,
 	input::-webkit-inner-spin-button {
