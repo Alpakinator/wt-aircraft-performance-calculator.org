@@ -5,7 +5,7 @@
 
 ## [**wtapc.org**](https://www.wtapc.org) - Website for generating graphs of engine power and power/weight of all piston aircraft and thrust of all jets in War Thunder, at all altitudes.
 
-v.2.1.0
+v.2.2.0
 
 <h3>Current features:</h3>
 <ol>

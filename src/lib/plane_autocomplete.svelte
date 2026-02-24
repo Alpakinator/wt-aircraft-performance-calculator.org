@@ -22,6 +22,7 @@
 		fuel_percents = $bindable([]),
 		include_boosters = $bindable([]),
 		plane_versions = $bindable([]),
+		vs_mode = $bindable(false),
 		performance_type = $bindable(),
 		colour_set = []
 	} = $props();
@@ -29,7 +30,7 @@
 	// Create a derived store for filtered planes
 	let filtered_planes = $derived(
 		performance_type === 'power/weight' || performance_type === 'power'
-			? planenames.piston
+			? [...planenames.piston, ...planenames.turboprop]
 			: performance_type === 'thrust' || performance_type === 'thrust/weight'
 				? planenames.jet
 				: []
@@ -147,6 +148,13 @@
 	}
 
 	$effect(() => {
+		if (vs_mode && chosenplanes.length > 2) {
+			chosenplanes = chosenplanes.slice(0, 2);
+			fuel_percents = fuel_percents.slice(0, 2);
+			include_boosters = include_boosters.slice(0, 2);
+			plane_versions = plane_versions.slice(0, 2);
+		}
+
 		chosenplanes_ingame = giveDisplayNamesFromPlaneCodes(chosenplanes);
 
 		const nextFuelPercents = chosenplanes.map((_, index) => {
@@ -346,6 +354,10 @@
 	}
 
 	function duplicatePlane(index) {
+		if (vs_mode && chosenplanes.length >= 2) {
+			return;
+		}
+
 		const planeToDuplicate = chosenplanes[index];
 		const fuelToDuplicate = fuel_percents[index];
 		const boosterToDuplicate = include_boosters[index];
@@ -443,6 +455,17 @@
 	<grid-item></grid-item>
 	<label id="autocomplete_title">
 		Planes:
+		<button
+			type="button"
+			id="vs_button"
+			data-state={vs_mode ? 'checked' : 'unchecked'}
+			onclick={() => {
+				vs_mode = !vs_mode;
+			}}
+			title="VS mode: compare first plane minus second plane"
+		>
+			VS
+		</button>
 		<div id="plane_autocomplete">
 			<Svelecte
 				class="plane-names"
@@ -453,7 +476,7 @@
 				options={filtered_planes}
 				placeholder="Search by typing"
 				resetOnSelect={false}
-				max={20}
+				max={vs_mode ? 2 : 20}
 				keepSelectionInList={false}
 				strictMode={false}
 				deselectMode="native"
@@ -524,14 +547,16 @@
 					style="width: 15rem"
 					aria-label="game version"
 				/>
-				<AlpaTooltip>
-					All listed game versions except the lastest are the first releases of the new major
-					patches. <br />
-					Planes flight models almost always change only between major matches, not during them.<br
-					/>
-					So "v4: 2.35.0.10 - 2.39.0.8" means this version was realeased in patch 2.35.0.10, was present
-					thoughout 2.37 and 2.39. It was changed in the release of 2.41.0.11.
-				</AlpaTooltip>
+				{#if index === 0}
+					<AlpaTooltip>
+						All listed game versions except the lastest are the first releases of the new major
+						patches. <br />
+						Planes flight models almost always change only between major matches, not during them.<br
+						/>
+						So "v4: 2.35.0.10 - 2.39.0.8" means this version was realeased in patch 2.35.0.10, was present
+						thoughout 2.37 and 2.39. It was changed in the release of 2.41.0.11.
+					</AlpaTooltip>
+				{/if}
 			</label>
 
 			<button class="remove-btn" onclick={() => removePlane(index)}>×</button>
@@ -555,14 +580,36 @@
 	#autocomplete_title {
 		background-color: rgb(30, 38, 46);
 		display: flex;
+		align-items: center;
+		gap: 0;
 		grid-column: 1 / span 8;
 		grid-row: 2;
 		align-self: start;
 		border-bottom: 0.2rem solid rgb(13, 17, 22);
 	}
 
-	#plane_autocomplete {
+	#vs_button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		margin-left: auto;
+		margin-right: 0;
+		width: 2rem;
+		height: 100%;
+		align-self: stretch;
+		margin-right: 0.2rem;
+		background-color: rgb(30, 38, 46);
+		color: rgb(205, 215, 225);
+		overflow: hidden;
+		line-height: normal;
+	}
+
+	#vs_button[data-state='checked'] {
+		background-color: rgba(0, 111, 161, 1);
+	}
+
+	#plane_autocomplete {
+		margin-left: 0;
 		align-self: right;
 		width: 51%;
 	}
@@ -632,19 +679,23 @@
 		font-size: 85%;
 	}
 
-	:global(.sv-control--selection.has-items span:first-of-type) {
-		display: none;
+	:global(.svelecte.plane-names .sv-control--selection.has-items span:not([class]):not([id])) {
+    display: none;
 	}
-	:global(.sv-control--selection.has-items) {
-		padding-left: 0.5rem;
+	:global(.svelecte.plane-names .sv-buttons) {
+		margin-left: auto;
+		justify-content: flex-end;
 	}
 
-	input,
-	:global(.sv-item--content),
-	:global(.sv-input--sizer) {
+	.input-field,
+	:global(.sv-item--content) {
 		outline: 0.1rem solid transparent;
 		transition: outline-color 0.2s;
 		width: 100%;
+	}
+	:global(.svelecte.plane-names .sv-input--sizer),
+	:global(.svelecte.plane-names .sv-input--text) {
+		text-align: left;
 	}
 
 	:global(.sv-item--content),
@@ -667,8 +718,8 @@
 		padding: 0;
 	}
 
-	:global(.sv-buttons.s-vSkvoVfekCDZ) {
-		display: none !important;
+	:global(.svelecte.plane-names .sv-buttons) {
+		display: flex !important;
 	}
 	:global(.sv-item--wrap) {
 		margin: 0.2rem 0.3rem 0rem 0.25rem !important;

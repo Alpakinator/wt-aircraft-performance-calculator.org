@@ -11,8 +11,9 @@ import {
 	createPowerMatrix
 } from './engine_power';
 
-let hoverstyle = 'x';
+let hoverstyle = 'x unified';
 let sliderChangeListener: ((event: any) => void) | null = null;
+const USE_CALCULATED_GRAPH_MIN = false;
 
 interface SliderPowerMatrix {
 	engine: number;
@@ -92,6 +93,13 @@ function getPistonEngineKeys(fm_dict: { [key: string]: any }, engineKeys: string
 	return engineKeys.filter((engineKey) => {
 		const mainType = fm_dict?.[engineKey]?.Main?.Type;
 		return mainType === 'Inline' || mainType === 'Radial';
+	});
+}
+
+function getTurboPropEngineKeys(fm_dict: { [key: string]: any }, engineKeys: string[]): string[] {
+	return engineKeys.filter((engineKey) => {
+		const mainType = fm_dict?.[engineKey]?.Main?.Type;
+		return mainType === 'TurboProp';
 	});
 }
 
@@ -217,6 +225,7 @@ interface ThrustMaxTable {
 	velocityIndices: number[];
 	velocityValues: number[];
 	coeffGrid: number[][];
+	torqueCoeffGrid: number[][];
 	thrAftCoeffGrid?: number[][];
 }
 
@@ -285,6 +294,9 @@ function buildThrustMaxTable(thrustMax: { [key: string]: any }): ThrustMaxTable 
 	const coeffGrid: number[][] = Array(altitudeIndices.length)
 		.fill(0)
 		.map(() => Array(velocityIndices.length).fill(0));
+	const torqueCoeffGrid: number[][] = Array(altitudeIndices.length)
+		.fill(0)
+		.map(() => Array(velocityIndices.length).fill(0));
 	const thrAftCoeffGrid: number[][] = Array(altitudeIndices.length)
 		.fill(0)
 		.map(() => Array(velocityIndices.length).fill(1));
@@ -294,8 +306,12 @@ function buildThrustMaxTable(thrustMax: { [key: string]: any }): ThrustMaxTable 
 		for (let velPos = 0; velPos < velocityIndices.length; velPos++) {
 			const velIdx = velocityIndices[velPos];
 			const coeffRaw = Number(thrustMax[`ThrustMaxCoeff_${altIdx}_${velIdx}`]);
+			const torqueCoeffRaw = Number(thrustMax[`TorqueMaxCoeff_${altIdx}_${velIdx}`]);
 			const thrAftCoeffRaw = Number(thrustMax[`ThrAftMaxCoeff_${altIdx}_${velIdx}`]);
 			coeffGrid[altPos][velPos] = Number.isFinite(coeffRaw) ? coeffRaw : 0;
+			torqueCoeffGrid[altPos][velPos] = Number.isFinite(torqueCoeffRaw)
+				? torqueCoeffRaw
+				: coeffGrid[altPos][velPos];
 			thrAftCoeffGrid[altPos][velPos] = Number.isFinite(thrAftCoeffRaw) ? thrAftCoeffRaw : 1;
 		}
 	}
@@ -306,6 +322,7 @@ function buildThrustMaxTable(thrustMax: { [key: string]: any }): ThrustMaxTable 
 		velocityIndices,
 		velocityValues,
 		coeffGrid,
+		torqueCoeffGrid,
 		thrAftCoeffGrid
 	};
 }
@@ -370,6 +387,92 @@ function getInterpolatedThrAftCoeffFromTable(
 	return getInterpolatedCoeffFromGrid(table, table.thrAftCoeffGrid, altitude, velocity);
 }
 
+function getInterpolatedTorqueCoeffFromTable(
+	table: ThrustMaxTable,
+	altitude: number,
+	velocity: number
+): number {
+	return getInterpolatedCoeffFromGrid(table, table.torqueCoeffGrid, altitude, velocity);
+}
+
+function createTurboPropPowerMatrices(
+	fm_dict: { [key: string]: any },
+	turboPropEngineKeys: string[],
+	atm: Atmosphere,
+	rows: number,
+	cols: number,
+	speed_type: string,
+	power_modes: string[]
+): SliderPowerMatrix[] {
+	const matrices: SliderPowerMatrix[] = [];
+	const altitudeByRow = Array.from({ length: rows }, (_, row) => row * 20);
+	const tasBySpeedAltitude: number[][] = Array(cols)
+		.fill(0)
+		.map(() => Array(rows).fill(0));
+
+	for (let row = 0; row < rows; row++) {
+		const altitude = altitudeByRow[row];
+		for (let col = 0; col < cols; col++) {
+			const selectedSpeedKph = col * 10;
+			tasBySpeedAltitude[col][row] =
+				speed_type === 'IAS' ? atm.tas_from_ias(selectedSpeedKph, altitude) : selectedSpeedKph;
+		}
+	}
+
+	const wantsMilitary = power_modes.includes('military');
+	const wantsWEP = power_modes.includes('WEP');
+	const modesToEmit = [
+		...(wantsMilitary ? ['military'] : []),
+		...(wantsWEP ? ['WEP'] : [])
+	];
+	if (modesToEmit.length === 0) {
+		modesToEmit.push('military');
+	}
+
+	for (let engineIndex = 0; engineIndex < turboPropEngineKeys.length; engineIndex++) {
+		const engineKey = turboPropEngineKeys[engineIndex];
+		const engineMain = fm_dict?.[engineKey]?.Main;
+		const thrustMax = engineMain?.ThrustMax;
+
+		if (typeof thrustMax !== 'object' || thrustMax == null) {
+			continue;
+		}
+
+		const powerBase = Number(engineMain?.Power ?? engineMain?.Power0);
+		if (!Number.isFinite(powerBase) || powerBase <= 0) {
+			continue;
+		}
+
+		const thrustTable = buildThrustMaxTable(thrustMax);
+		if (thrustTable == null) {
+			continue;
+		}
+
+		const matrix: number[][] = Array(cols)
+			.fill(0)
+			.map(() => Array(rows).fill(0));
+
+		for (let row = 0; row < rows; row++) {
+			const altitude = altitudeByRow[row];
+			for (let col = 0; col < cols; col++) {
+				const tasKph = tasBySpeedAltitude[col][row];
+				const torqueCoeff = getInterpolatedTorqueCoeffFromTable(thrustTable, altitude, tasKph);
+				matrix[col][row] = Math.max(0, powerBase * torqueCoeff);
+			}
+		}
+
+		for (const mode of modesToEmit) {
+			matrices.push({
+				engine: engineIndex,
+				mode,
+				matrix
+			});
+		}
+	}
+
+	return matrices;
+}
+
 function createThrustMatrices(
 	fm_dict: { [key: string]: any },
 	thrustEngineKeys: string[],
@@ -420,23 +523,10 @@ function createThrustMatrices(
 		}
 
 		const engineMain = fm_dict?.[engineKey]?.Main;
-		const thrustMax = engineMain?.ThrustMax;
-
-		if (typeof thrustMax !== 'object' || thrustMax == null) {
-			continue;
-		}
-
-		const thrustBase = Number(thrustMax.ThrustMax0);
-		if (!Number.isFinite(thrustBase) || thrustBase <= 0) {
-			continue;
-		}
-
-		const thrustTable = buildThrustMaxTable(thrustMax);
-		if (thrustTable == null) {
-			continue;
-		}
-
 		const multipliers = modeMultipliersByEngine.get(engineKey) ?? getThrustModeMultipliers(engineMain);
+		const afterburnerBoostRaw = Number(engineMain?.AfterburnerBoost);
+		const afterburnerBoost =
+			Number.isFinite(afterburnerBoostRaw) && afterburnerBoostRaw > 0 ? afterburnerBoostRaw : 1;
 		const modeMap: Array<{ mode: string; multiplier: number }> = [];
 		const wantsMilitary = power_modes.includes('military');
 		const wantsWEP = power_modes.includes('WEP');
@@ -458,6 +548,54 @@ function createThrustMatrices(
 			pushMode(boosterModeName, multipliers.military);
 		}
 
+		const engineType = engineMain?.Type;
+		if (engineType === 'Rocket') {
+			const thrustBaseNewton = Number(engineMain?.Thrust);
+			const thrustBase = thrustBaseNewton * 0.1019716213;
+
+			if (!Number.isFinite(thrustBase) || thrustBase <= 0) {
+				continue;
+			}
+
+			for (const modeEntry of modeMap) {
+				const matrix: number[][] = Array(cols)
+					.fill(0)
+					.map(() => Array(rows).fill(0));
+				const afterburnerModeBoost = modeEntry.mode === 'WEP' ? afterburnerBoost : 1;
+				const thrustValue = Math.max(0, thrustBase * modeEntry.multiplier * afterburnerModeBoost);
+
+				for (let row = 0; row < rows; row++) {
+					for (let col = 0; col < cols; col++) {
+						matrix[col][row] = thrustValue;
+					}
+				}
+
+				matrices.push({
+					engine: engineIndex,
+					mode: modeEntry.mode,
+					matrix
+				});
+			}
+
+			continue;
+		}
+
+		const thrustMax = engineMain?.ThrustMax;
+
+		if (typeof thrustMax !== 'object' || thrustMax == null) {
+			continue;
+		}
+
+		const thrustBase = Number(thrustMax.ThrustMax0);
+		if (!Number.isFinite(thrustBase) || thrustBase <= 0) {
+			continue;
+		}
+
+		const thrustTable = buildThrustMaxTable(thrustMax);
+		if (thrustTable == null) {
+			continue;
+		}
+
 		for (const modeEntry of modeMap) {
 			const matrix: number[][] = Array(cols)
 				.fill(0)
@@ -473,7 +611,11 @@ function createThrustMatrices(
 						modeEntry.mode === 'WEP'
 							? getInterpolatedThrAftCoeffFromTable(thrustTable, altitude, tasKph)
 							: 1;
-					matrix[col][row] = Math.max(0, thrustBase * coeff * modeEntry.multiplier * thrAftCoeff);
+					const afterburnerModeBoost = modeEntry.mode === 'WEP' ? afterburnerBoost : 1;
+					matrix[col][row] = Math.max(
+						0,
+						thrustBase * coeff * modeEntry.multiplier * thrAftCoeff * afterburnerModeBoost
+					);
 				}
 			}
 
@@ -538,6 +680,7 @@ export async function makeGraphFromForm(
 	fuel_percents,
 	include_boosters,
 	plane_versions,
+	vs_mode,
 	colour_set,
 	bg_col
 ) {
@@ -556,6 +699,11 @@ export async function makeGraphFromForm(
 		performance_type == null ||
 		graph_d == null
 	) {
+		return;
+	}
+
+	if (vs_mode && chosenplanes.length !== 2) {
+		Plotly.purge('graphid');
 		return;
 	}
 
@@ -676,9 +824,8 @@ export async function makeGraphFromForm(
 	const maxGraphSpeedKph = isThrustMetric ? 2000 : 1000;
 	const speeds = Math.floor(maxGraphSpeedKph / 10) + 1;
 	const altitudes = Math.round(max_altm / 20);
-	// Generate x and y values for the graph
+	// Generate speed values for the graph
 	const speed_values = Array.from({ length: speeds }, (_, col) => col * 10);
-	const altitude_values = Array.from({ length: Math.floor(max_alt / 20) + 1 }, (_, row) => row * 20);
 	let allPowerMatrices: SliderPowerMatrix[] = [];
 
 	// Process each selected plane in input order to keep legend/trace mapping stable.
@@ -700,38 +847,53 @@ export async function makeGraphFromForm(
 		let baseMatrices: SliderPowerMatrix[] = [];
 
 		if (isPowerMetric) {
+			const turboPropEngineKeys = getTurboPropEngineKeys(fm_dict, engineKeys);
 			const pistonEngineKeys = getPistonEngineKeys(fm_dict, engineKeys);
-			curveEngineKeys = pistonEngineKeys;
 
-			if (pistonEngineKeys.length === 0) {
-				console.warn(`Skipping ${selectionId}: no piston engines found.`);
-				continue;
+			if (turboPropEngineKeys.length > 0 && pistonEngineKeys.length === 0) {
+				curveEngineKeys = turboPropEngineKeys;
+				baseMatrices = createTurboPropPowerMatrices(
+					fm_dict,
+					turboPropEngineKeys,
+					atm,
+					altitudes,
+					speeds,
+					speed_type,
+					power_modes
+				);
+			} else {
+				curveEngineKeys = pistonEngineKeys;
+
+				if (pistonEngineKeys.length === 0) {
+					console.warn(`Skipping ${selectionId}: no power-capable prop engines found.`);
+					continue;
+				}
+
+				const engineKey = pistonEngineKeys[0];
+				const intake_efficiency = fm_dict[engineKey]?.Compressor?.SpeedManifoldMultiplier;
+				if (!Number.isFinite(intake_efficiency)) {
+					console.warn(`Skipping ${selectionId}: invalid intake efficiency.`);
+					continue;
+				}
+
+				const intervals = collectInterval(
+					fm_dict,
+					true,
+					power_modes,
+					pistonEngineKeys.length,
+					pistonEngineKeys
+				);
+
+				const pressureMatrix = createPressureMatrixForSpeedType(
+					atm,
+					intake_efficiency,
+					altitudes,
+					speeds,
+					speed_type
+				);
+
+				baseMatrices = createPowerMatrix(intervals, pressureMatrix, altitudes, speeds);
 			}
-
-			const engineKey = pistonEngineKeys[0];
-			const intake_efficiency = fm_dict[engineKey]?.Compressor?.SpeedManifoldMultiplier;
-			if (!Number.isFinite(intake_efficiency)) {
-				console.warn(`Skipping ${selectionId}: invalid intake efficiency.`);
-				continue;
-			}
-
-			const intervals = collectInterval(
-				fm_dict,
-				true,
-				power_modes,
-				pistonEngineKeys.length,
-				pistonEngineKeys
-			);
-
-			const pressureMatrix = createPressureMatrixForSpeedType(
-				atm,
-				intake_efficiency,
-				altitudes,
-				speeds,
-				speed_type
-			);
-
-			baseMatrices = createPowerMatrix(intervals, pressureMatrix, altitudes, speeds);
 		} else if (isThrustMetric) {
 			const thrustEngineKeys = getThrustEngineKeys(fm_dict, engineKeys);
 			curveEngineKeys = thrustEngineKeys;
@@ -800,27 +962,58 @@ export async function makeGraphFromForm(
 					});
 				});
 			} else {
-				const summedByMode = new Map<string, { mode: string; matrix: number[][] }>();
+				const modeOrder: string[] = [];
+				const scaledByEngineMode = new Map<number, Map<string, number[][]>>();
 
 				baseMatrices.forEach((matrixObj) => {
-					const key = matrixObj.mode;
-					const perCurveMultiplier = engineInstancesPerCurve[matrixObj.engine] || 1;
-
-					if (!summedByMode.has(key)) {
-						summedByMode.set(key, {
-							mode: matrixObj.mode,
-							matrix: matrixObj.matrix.map((row) => row.map(() => 0))
-						});
+					if (!modeOrder.includes(matrixObj.mode)) {
+						modeOrder.push(matrixObj.mode);
 					}
 
-					const summed = summedByMode.get(key)!;
-					for (let speedIdx = 0; speedIdx < matrixObj.matrix.length; speedIdx++) {
-						for (let altIdx = 0; altIdx < matrixObj.matrix[speedIdx].length; altIdx++) {
-							summed.matrix[speedIdx][altIdx] +=
-								matrixObj.matrix[speedIdx][altIdx] * perCurveMultiplier;
+					const perCurveMultiplier = engineInstancesPerCurve[matrixObj.engine] || 1;
+					const scaledMatrix = matrixObj.matrix.map((speedRow) =>
+						speedRow.map((value) => value * perCurveMultiplier)
+					);
+
+					if (!scaledByEngineMode.has(matrixObj.engine)) {
+						scaledByEngineMode.set(matrixObj.engine, new Map<string, number[][]>());
+					}
+
+					scaledByEngineMode.get(matrixObj.engine)!.set(matrixObj.mode, scaledMatrix);
+				});
+
+				const summedByMode = new Map<string, { mode: string; matrix: number[][] }>();
+				for (const mode of modeOrder) {
+					const summedMatrix = baseMatrices[0].matrix.map((speedRow) => speedRow.map(() => 0));
+
+					for (const engineModes of scaledByEngineMode.values()) {
+						let sourceMode = mode;
+						if (
+							isThrustMetric &&
+							mode === 'WEP' &&
+							!engineModes.has('WEP') &&
+							engineModes.has('military')
+						) {
+							sourceMode = 'military';
+						}
+
+						const sourceMatrix = engineModes.get(sourceMode);
+						if (!sourceMatrix) {
+							continue;
+						}
+
+						for (let speedIdx = 0; speedIdx < sourceMatrix.length; speedIdx++) {
+							for (let altIdx = 0; altIdx < sourceMatrix[speedIdx].length; altIdx++) {
+								summedMatrix[speedIdx][altIdx] += sourceMatrix[speedIdx][altIdx];
+							}
 						}
 					}
-				});
+
+					summedByMode.set(mode, {
+						mode,
+						matrix: summedMatrix
+					});
+				}
 
 				let aggregatedEngineIndex = 0;
 				summedByMode.forEach((summed) => {
@@ -881,11 +1074,62 @@ export async function makeGraphFromForm(
 		}
 	}
 
-	plotly_generator_with_slider(
-		allPowerMatrices,
-		altitude_values,
+	if (allPowerMatrices.length === 0) {
+		Plotly.purge('graphid');
+		return;
+	}
+
+	let matricesForPlot = allPowerMatrices;
+	let vsLabel: string | null = null;
+
+	if (vs_mode) {
+		const vsResult = buildVsPowerMatrices(
+			allPowerMatrices,
+			chosenplanes,
+			chosenplanes_ingame,
+			plane_versions,
+			power_modes
+		);
+
+		if (!vsResult) {
+			Plotly.purge('graphid');
+			return;
+		}
+
+		matricesForPlot = vsResult.matrices;
+		vsLabel = vsResult.label;
+	}
+
+	if (graph_d === '3D') {
+		plotly_generator_3d(
+			matricesForPlot,
+			chosenplanes_ingame,
+			power_unit,
+			thrust_unit,
+			weight_unit,
+			alt_unit,
+			alt_factor,
+			speed_factor,
+			speed_type,
+			speed_unit,
+			air_temp,
+			air_temp_unit,
+			autoscale,
+			lowest_resp_var,
+			highest_resp_var,
+			axis_layout,
+			performance_type,
+			colour_set,
+			bg_col,
+			vs_mode,
+			vsLabel
+		);
+		return;
+	}
+
+	plotly_2D_generator(
+		matricesForPlot,
 		speed_values,
-		chosenplanes,
 		chosenplanes_ingame,
 		power_unit,
 		thrust_unit,
@@ -906,23 +1150,107 @@ export async function makeGraphFromForm(
 		performance_type,
 		colour_set,
 		hoverstyle,
-		bg_col
+		bg_col,
+		vs_mode,
+		vsLabel,
+		true
 	);
 }
 
-interface PowerCurve {
-	[key: number]: number;
-}
+function buildVsPowerMatrices(
+	power_matrices: SliderPowerMatrix[],
+	chosenplanes: string[],
+	chosenplanes_ingame: string[],
+	plane_versions: string[],
+	targetModes: string[]
+): { matrices: SliderPowerMatrix[]; label: string } | null {
+	if (chosenplanes.length < 2) {
+		return null;
+	}
 
-interface NamedPowerCurves {
-	[key: string]: {
-		military?: PowerCurve;
-		WEP?: PowerCurve;
+	const firstSelectionIndex = 0;
+	const secondSelectionIndex = 1;
+	const normalizedTargetModes = targetModes.filter((mode) => typeof mode === 'string' && mode.length > 0);
+
+	const pickFirstEngineTrace = (
+		selectionIndex: number,
+		preferredModes: string[]
+	): SliderPowerMatrix | null => {
+		const samePlane = power_matrices
+			.filter((matrixEntry) => matrixEntry.selectionIndex === selectionIndex)
+			.sort((a, b) => a.engine - b.engine);
+
+		if (samePlane.length === 0) {
+			return null;
+		}
+
+		for (const mode of preferredModes) {
+			const samePlaneAndMode = samePlane.filter((entry) => entry.mode === mode);
+			if (samePlaneAndMode.length === 0) {
+				continue;
+			}
+
+			const explicitEngineZero = samePlaneAndMode.find((entry) => entry.engine === 0);
+			return explicitEngineZero ?? samePlaneAndMode[0];
+		}
+
+		const explicitEngineZero = samePlane.find((entry) => entry.engine === 0);
+		return explicitEngineZero ?? samePlane[0];
 	};
-}
 
-interface DataFrameRow {
-	[key: string]: number[] | number | null | undefined;
+	const defaultModeOrder = ['WEP', 'military'];
+	const firstPlanePreferredModes =
+		normalizedTargetModes.length > 0 ? normalizedTargetModes : defaultModeOrder;
+	const secondPlanePreferredModes =
+		normalizedTargetModes.length > 1
+			? [normalizedTargetModes[1], normalizedTargetModes[0]]
+			: firstPlanePreferredModes;
+
+	const firstPlaneTrace = pickFirstEngineTrace(firstSelectionIndex, firstPlanePreferredModes);
+	const secondPlaneTrace = pickFirstEngineTrace(secondSelectionIndex, secondPlanePreferredModes);
+
+	if (!firstPlaneTrace || !secondPlaneTrace) {
+		return null;
+	}
+
+	const speedCount = Math.min(firstPlaneTrace.matrix.length, secondPlaneTrace.matrix.length);
+	const diffMatrix: number[][] = Array.from({ length: speedCount }, (_, speedIdx) => {
+		const firstSpeedRow = firstPlaneTrace.matrix[speedIdx];
+		const secondSpeedRow = secondPlaneTrace.matrix[speedIdx];
+		const altitudeCount = Math.min(firstSpeedRow.length, secondSpeedRow.length);
+
+		return Array.from(
+			{ length: altitudeCount },
+			(_, altIdx) => firstSpeedRow[altIdx] - secondSpeedRow[altIdx]
+		);
+	});
+
+	const firstBasePlaneId = chosenplanes[0]?.split(':')[0] ?? chosenplanes[0];
+	const secondBasePlaneId = chosenplanes[1]?.split(':')[0] ?? chosenplanes[1];
+	const firstVersionTag = getVersionTag(firstBasePlaneId, plane_versions[0]);
+	const secondVersionTag = getVersionTag(secondBasePlaneId, plane_versions[1]);
+	const firstPlaneBaseName = chosenplanes_ingame[0] || chosenplanes[0];
+	const secondPlaneBaseName = chosenplanes_ingame[1] || chosenplanes[1];
+	const firstPlaneName = firstVersionTag
+		? `${firstPlaneBaseName} ${firstVersionTag}`
+		: firstPlaneBaseName;
+	const secondPlaneName = secondVersionTag
+		? `${secondPlaneBaseName} ${secondVersionTag}`
+		: secondPlaneBaseName;
+	const label = `${firstPlaneName} - ${secondPlaneName}`;
+
+	return {
+		matrices: [
+			{
+				engine: 0,
+				mode: '',
+				matrix: diffMatrix,
+				planeName: label,
+				selectionIndex: 0
+			}
+		],
+		label
+	};
 }
 
 
@@ -968,6 +1296,397 @@ function getMinMax(values: number[]): { min: number; max: number } {
 	return { min: minValue, max: maxValue };
 }
 
+function getGraphAutoMin(rawMinValue: number, rangePadding: number, vs_mode: boolean): number {
+	const calculatedMin = vs_mode ? rawMinValue - rangePadding : Math.max(0, rawMinValue - rangePadding);
+	if (rawMinValue < 0) {
+		return rawMinValue - rangePadding;
+	}
+
+	if (!USE_CALCULATED_GRAPH_MIN) {
+		return 0;
+	}
+
+	return calculatedMin;
+}
+
+function getMetricAxisLabel(
+	performance_type: string,
+	power_unit: string,
+	thrust_unit: string,
+	weight_unit: string
+): string {
+	if (performance_type === 'power') {
+		return `Power [${power_unit}]`;
+	}
+
+	if (performance_type === 'power/weight') {
+		return `Power / Weight [${power_unit}/${weight_unit}]`;
+	}
+
+	if (performance_type === 'thrust') {
+		return `Thrust [${thrust_unit}]`;
+	}
+
+	return `Thrust / Weight [${thrust_unit}/${weight_unit}]`;
+}
+
+function getMetricTitle(performance_type: string): string {
+	if (performance_type === 'power') {
+		return 'Engine power';
+	}
+
+	if (performance_type === 'power/weight') {
+		return 'Power / Weight';
+	}
+
+	if (performance_type === 'thrust') {
+		return 'Engine thrust';
+	}
+
+	return 'Thrust / Weight';
+}
+
+function toRgba(colour: string, alpha: number): string {
+	const match = colour.match(/rgba?\(([^)]+)\)/i);
+	if (!match) {
+		return colour;
+	}
+
+	const parts = match[1]
+		.split(',')
+		.slice(0, 3)
+		.map((part) => Number(part.trim()));
+
+	if (parts.length !== 3 || parts.some((value) => !Number.isFinite(value))) {
+		return colour;
+	}
+
+	return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+}
+
+function getEffectiveHoverMode(hovermode: string, axis_layout: boolean): string | false {
+	if (!axis_layout) {
+		return hovermode;
+	}
+
+	if (hovermode === 'x') {
+		return 'y';
+	}
+
+	if (hovermode === 'x unified') {
+		return 'y unified';
+	}
+
+	return hovermode;
+}
+
+function isNonUnifiedHoverMode(hovermode: string | false): boolean {
+	return hovermode === 'x' || hovermode === 'y' || hovermode === 'closest';
+}
+
+function getTraceHoverLabelStyle(
+	hovermode: string | false,
+	bgColor: string,
+	traceColor: string
+): { bgcolor: string; bordercolor: string } | undefined {
+	if (!isNonUnifiedHoverMode(hovermode)) {
+		return undefined;
+	}
+
+	return {
+		bgcolor: toRgba(bgColor, 0.9),
+		bordercolor: traceColor
+	};
+}
+
+function plotly_generator_3d(
+	power_matrices: Array<{
+		engine: number;
+		mode: string;
+		matrix: number[][];
+		planeName?: string;
+		selectionIndex?: number;
+	}>,
+	chosenplanes_ingame: string[],
+	power_unit: string,
+	thrust_unit: string,
+	weight_unit: string,
+	alt_unit: string,
+	alt_factor: number,
+	speed_factor: number,
+	speed_type: string,
+	speed_unit: string,
+	air_temp: number,
+	air_temp_unit: string,
+	autoscale: boolean,
+	lowest_resp_var: number,
+	highest_resp_var: number,
+	axis_layout: boolean,
+	performance_type: string,
+	colour_set: string[],
+	bg_col: string,
+	vs_mode: boolean = false,
+	vs_label: string | null = null
+): void {
+	const font_fam = 'Inter';
+	const isMobileViewport = isMobilePlotViewport();
+	const plotTypography = getPlotTypography(isMobileViewport);
+
+	const all_values: number[] = [];
+	const traces: any[] = [];
+
+	for (const { engine, mode, matrix, planeName, selectionIndex } of power_matrices) {
+		const speedCount = matrix.length;
+		const altitudeCount = matrix[0]?.length ?? 0;
+
+		if (speedCount === 0 || altitudeCount === 0) {
+			continue;
+		}
+
+		const responseMatrix: number[][] = Array.from({ length: altitudeCount }, (_, altIdx) =>
+			Array.from({ length: speedCount }, (_, speedIdx) => {
+				const value = matrix[speedIdx][altIdx];
+				all_values.push(value);
+				return value;
+			})
+		);
+
+		const x = Array.from({ length: speedCount }, (_, speedIdx) =>
+			Number(((speedIdx * 10) / speed_factor).toFixed(1))
+		);
+		const y = Array.from({ length: altitudeCount }, (_, altIdx) =>
+			Number(((altIdx * 20) / alt_factor).toFixed(1))
+		);
+
+		const displayName = planeName || chosenplanes_ingame[engine] || `Engine ${engine}`;
+		const traceName = mode ? `${displayName} (${mode})` : displayName;
+		const colourIndex = selectionIndex ?? engine;
+		const baseColour = colour_set[colourIndex % colour_set.length];
+
+		const altitudeMatrix: number[][] = Array.from({ length: altitudeCount }, (_, altIdx) =>
+			Array.from({ length: speedCount }, () => y[altIdx])
+		);
+
+		const speedMatrix: number[][] = Array.from({ length: altitudeCount }, () =>
+			Array.from({ length: speedCount }, (_, speedIdx) => x[speedIdx])
+		);
+
+		const traceBase = {
+			type: 'surface',
+			name: traceName,
+			showlegend: true,
+			opacity: 0.85,
+			showscale: false,
+			hoverlabel: {
+				bgcolor: toRgba(bg_col, 0.9),
+				bordercolor: baseColour
+			},
+			colorscale: [
+				[0, toRgba(baseColour, 0.2)],
+				[0.4, toRgba(baseColour, 0.45)],
+				[1, toRgba(baseColour, 0.95)]
+			]
+		};
+
+		if (axis_layout) {
+			traces.push({
+				...traceBase,
+				x: speedMatrix,
+				y: responseMatrix,
+				z: altitudeMatrix,
+				hovertemplate:
+					`${traceName}<br>${speed_type} Speed: %{x} ${speed_unit}` +
+					`<br>${getMetricAxisLabel(performance_type, power_unit, thrust_unit, weight_unit)}: %{y}` +
+					`<br>Altitude: %{z} ${alt_unit}` +
+					'<extra></extra>'
+			});
+		} else {
+			traces.push({
+				...traceBase,
+				x,
+				y,
+				z: responseMatrix,
+				hovertemplate:
+					`${traceName}<br>${speed_type} Speed: %{x} ${speed_unit}` +
+					`<br>Altitude: %{y} ${alt_unit}<br>${getMetricAxisLabel(performance_type, power_unit, thrust_unit, weight_unit)}: %{z}` +
+					'<extra></extra>'
+			});
+		}
+	}
+
+	if (traces.length === 0) {
+		Plotly.purge('graphid');
+		return;
+	}
+
+	const { min: rawMinValue, max: rawMaxValue } = getMinMax(all_values);
+	const rangePadding = Math.max(
+		(rawMaxValue - rawMinValue) * 0.05,
+		rawMaxValue === 0 ? 1 : rawMaxValue * 0.01
+	);
+	const autoAxisMin = getGraphAutoMin(rawMinValue, rangePadding, vs_mode);
+	const autoAxisMax = rawMaxValue + rangePadding;
+	const manualAxisMin = Number(lowest_resp_var);
+	const manualAxisMax = Number(highest_resp_var);
+	const hasValidManualRange =
+		Number.isFinite(manualAxisMin) &&
+		Number.isFinite(manualAxisMax) &&
+		(vs_mode || manualAxisMin >= 0) &&
+		manualAxisMax > manualAxisMin;
+	const useManualRange = !autoscale && hasValidManualRange;
+	const effectiveAxisMin = useManualRange ? manualAxisMin : autoAxisMin;
+	const effectiveAxisMax = useManualRange ? manualAxisMax : autoAxisMax;
+
+	window.dispatchEvent(
+		new CustomEvent('wtapc-power-axis-range', {
+			detail: {
+				min: autoAxisMin,
+				max: autoAxisMax
+			}
+		})
+	);
+
+	const baseMetricLabel = getMetricAxisLabel(performance_type, power_unit, thrust_unit, weight_unit);
+	const metricLabel = vs_mode ? `Δ ${baseMetricLabel}` : baseMetricLabel;
+	const title = vs_mode
+		? `${getMetricTitle(performance_type)} difference (${vs_label ?? 'Plane 1 - Plane 2'}) by altitude and speed`
+		: `${getMetricTitle(performance_type)} by altitude and speed`;
+	const sceneTickFontSize = isMobileViewport ? 8 : 11;
+	const sceneAxisTitleFontSize = isMobileViewport ? 10 : 12;
+	const altitudeMaxInUnit = power_matrices[0]?.matrix?.[0]
+		? ((power_matrices[0].matrix[0].length - 1) * 20) / alt_factor
+		: 0;
+	const responseTickInterval = calculateTickInterval(effectiveAxisMin, effectiveAxisMax);
+	const altitudeTickInterval = calculateTickInterval(0, altitudeMaxInUnit);
+
+	const layout = {
+		uirevision: 'true',
+		paper_bgcolor: bg_col,
+		plot_bgcolor: bg_col,
+		autosize: true,
+		title: {
+			text: title,
+			font: { size: plotTypography.title },
+			x: 0.5,
+			y: isMobileViewport ? 0.93 : 0.99,
+			yanchor: 'top'
+		},
+		showlegend: true,
+		legend: {
+			yanchor: 'top',
+			y: 1,
+			xanchor: 'right',
+			x: 1,
+			font: { size: plotTypography.legend, family: font_fam },
+			title: null
+		},
+		hoverlabel: {
+			font: { color: '#fdfdfde6', size: plotTypography.hover, family: font_fam },
+			bordercolor: '#142E40',
+			borderwidth: 1
+		},
+		font: { family: font_fam, color: '#fdfdfde6' },
+		margin: plotTypography.margin3d,
+		modebar: {
+			orientation: isMobileViewport ? 'h' : 'v',
+			bgcolor: 'rgba(0,0,0,0)',
+			color: 'rgb(205, 215, 225)',
+			activecolor: 'rgb(0, 111, 161)',
+			font: { size: plotTypography.modebar }
+		},
+		scene: {
+			bgcolor: bg_col,
+			aspectmode: 'cube',
+				camera: {
+					eye: { x: 2, y: -0.8, z: 0.4 }
+				},
+			xaxis: {
+				title: {
+					text: `${speed_type} Speed [${speed_unit}]`,
+					font: { size: sceneAxisTitleFontSize, color: '#fdfdfde6', family: font_fam }
+				},
+					autorange: 'reversed',
+				gridcolor: 'rgba(47, 62, 73, 0.5)',
+				zerolinecolor: 'rgba(47, 62, 73, 0.5)',
+				showbackground: true,
+				backgroundcolor: bg_col,
+				tickfont: { size: sceneTickFontSize, color: '#fdfdfde6' },
+				nticks: 6
+			},
+			yaxis: {
+				title: {
+					text: axis_layout ? metricLabel : `Altitude [${alt_unit}]`,
+					font: { size: sceneAxisTitleFontSize, color: '#fdfdfde6', family: font_fam }
+				},
+				range: axis_layout ? [effectiveAxisMin, effectiveAxisMax] : [0, altitudeMaxInUnit],
+				dtick: axis_layout ? responseTickInterval : altitudeTickInterval,
+				gridcolor: 'rgba(47, 62, 73, 0.5)',
+				zerolinecolor: 'rgba(47, 62, 73, 0.5)',
+				showbackground: true,
+				backgroundcolor: bg_col,
+				tickfont: { size: sceneTickFontSize, color: '#fdfdfde6' },
+				nticks: 6
+			},
+			zaxis: {
+				title: {
+					text: axis_layout ? `Altitude [${alt_unit}]` : metricLabel,
+					font: { size: sceneAxisTitleFontSize, color: '#fdfdfde6', family: font_fam }
+				},
+				range: axis_layout ? [0, altitudeMaxInUnit] : [effectiveAxisMin, effectiveAxisMax],
+				dtick: axis_layout ? altitudeTickInterval : responseTickInterval,
+				gridcolor: 'rgba(47, 62, 73, 0.5)',
+				zerolinecolor: 'rgba(47, 62, 73, 0.5)',
+				showbackground: true,
+				backgroundcolor: bg_col,
+				tickfont: { size: sceneTickFontSize, color: '#fdfdfde6' },
+				nticks: 6
+			}
+		},
+		annotations: [
+			{
+				text: `Temperature at sea level: ${air_temp} ${air_temp_unit}`,
+				showarrow: false,
+				font: { size: plotTypography.annotation },
+				x: 0,
+				y: 1,
+				xref: 'paper',
+				yref: 'paper',
+				xanchor: 'left',
+				yanchor: 'bottom'
+			},
+			{
+				text: "Do not use in War Thunder bug reports, because it's not <br>a valid source. Otherwise Gaijin can ban datamining.",
+				opacity: 0.15,
+				showarrow: false,
+				font: { size: plotTypography.annotation, color: 'white', family: font_fam },
+				x: 1,
+				y: 0,
+				xref: 'paper',
+				yref: 'paper',
+				xanchor: 'right',
+				yanchor: 'bottom'
+			}
+		]
+	};
+
+	const config = {
+		scrollZoom: true,
+		displayModeBar: true,
+		displaylogo: false,
+		responsive: true,
+		showEditInChartStudio: false,
+		plotlyServerURL: 'https://chart-studio.plotly.com',
+		toImageButtonOptions: {
+			filename: 'performance_plot',
+			format: 'png'
+		}
+	};
+
+	Plotly.purge('graphid');
+	sliderChangeListener = null;
+	Plotly.react('graphid', traces, layout, config);
+}
+
 function isMobilePlotViewport(): boolean {
 	if (typeof window === 'undefined') {
 		return false;
@@ -988,7 +1707,8 @@ function getPlotTypography(isMobile: boolean) {
 			axisTitle: 10,
 			tick: 9,
 			sliderCurrent: 11,
-			margin: { l: 18, r: 6, b: 16, t: 72, pad: 2 }
+			margin: { l: 18, r: 6, b: 16, t: 72, pad: 2 },
+			margin3d: { l: 8, r: 8, b: 8, t: 48, pad: 2 }
 		};
 	}
 
@@ -1002,367 +1722,12 @@ function getPlotTypography(isMobile: boolean) {
 		axisTitle: 18,
 		tick: 16,
 		sliderCurrent: 16,
-		margin: { l: 60, r: 25, b: 65, t: 60, pad: 5 }
+		margin: { l: 60, r: 25, b: 65, t: 60, pad: 5 },
+		margin3d: { l: 36, r: 16, b: 16, t: 36, pad: 2 }
 	};
 }
 
-export function plotly_generator(
-	final_data,
-	all_values,
-	chosenplanes,
-	power_unit,
-	weight_unit,
-	max_alt,
-	alt_unit,
-	speed,
-	speed_type,
-	speed_unit,
-	air_temp,
-	air_temp_unit,
-	axis_layout,
-	performance_type,
-	colour_set,
-	hoverstyle,
-	bg_col
-) {
-	// console.log(final_data);
-	let font_fam = 'Inter';
-	const isMobileViewport = isMobilePlotViewport();
-	const plotTypography = getPlotTypography(isMobileViewport);
-	const alt_vals = final_data[0]['Altitude [m]'];
-	final_data.shift();
-	// console.log(final_data)
-	const final_object: {
-		x: number;
-		y: number;
-		mode: string;
-		line: { width: number; shape: string; dash: string };
-		type: string;
-		name: string;
-		marker;
-		hoverinfo;
-		text;
-		// hovertemplate;
-	}[] = [];
-
-	let highest_x, lowest_x, title, x_axis_title, x_axis_tick;
-	let highest_y, lowest_y, y_axis_title, y_axis_tick;
-	let no_bugwarning_angle,
-		no_bugwarning_x,
-		no_bugwarning_y,
-		no_bugwarning_x_anchor,
-		no_bugwarning_y_anchor;
-	const axisTitleXAnnotationX = isMobileViewport ? 1 : 1;
-	const axisTitleXAnnotationY = isMobileViewport ? -0.06 : -0.04;
-	const axisTitleYAnnotationX = isMobileViewport ? -0.055 : -0.055;
-	const axisTitleYAnnotationY = 1;
-	let air_temp_info = 'Temperature at sea level: ' + air_temp + ' ' + air_temp_unit;
-	let plane: number;
-	let colo_index = 0;
-	let line_dashes = ['solid', 'dash'];
-	const { min: minAllValues, max: maxAllValues } = getMinMax(all_values);
-	if (axis_layout) {
-		for (const plane in final_data) {
-			let dash_index = 0;
-			for (const mode in final_data[plane]) {
-				let plane_mode = plane + ' (' + mode + ')';
-				final_object.push({
-					x: final_data[plane][mode],
-					y: alt_vals,
-					mode: 'lines',
-					line: { width: 2, shape: 'linear', dash: line_dashes[dash_index] },
-					type: 'linegl',
-					name: plane_mode,
-					marker: { color: colour_set[colo_index] },
-					hoverinfo: 'x+y+text',
-					text: plane_mode
-					//         hovertemplate:
-					// "%{text}" +
-					// "%{yaxis.title.text}: %{y:}<br>" +
-					// "%{xaxis.title.text}: %{x:}<br>" +
-					// "<extra></extra>"
-				});
-				dash_index++;
-			}
-			colo_index++;
-		}
-		no_bugwarning_angle = 270;
-		no_bugwarning_x = 1;
-		no_bugwarning_y = 0;
-		no_bugwarning_x_anchor = 'right';
-		no_bugwarning_y_anchor = 'bottom';
-		if (performance_type === 'power') {
-			title =
-				'Engine power at different altitudes, when flying at ' +
-				speed +
-				' ' +
-				speed_unit +
-				' ' +
-				speed_type;
-			highest_x = maxAllValues;
-			lowest_x = minAllValues;
-			highest_x = Math.ceil(highest_x * 1.05);
-			lowest_x = Math.floor(lowest_x * 0.95);
-			if (lowest_x < 0) {
-				lowest_x = 0;
-			}
-			x_axis_title = 'Power [' + power_unit + ']';
-			x_axis_tick = calculateTickInterval(lowest_x, highest_x);
-			lowest_y = 0;
-			highest_y = max_alt;
-			y_axis_title = 'Altitude [' + alt_unit + ']';
-			y_axis_tick = calculateTickInterval(lowest_y, highest_y);
-		} else if (performance_type === 'power/weight') {
-			title =
-				'Power / Weight at different altitudes, when flying at ' +
-				speed +
-				' ' +
-				speed_unit +
-				' ' +
-				speed_type;
-			highest_x = maxAllValues;
-			lowest_x = minAllValues;
-			highest_x = highest_x * 1.05;
-			lowest_x = lowest_x * 0.95;
-			if (lowest_x < 0) {
-				lowest_x = 0;
-			}
-			x_axis_title = 'Power / Weight [' + power_unit + '/' + weight_unit + ']';
-			x_axis_tick = calculateTickInterval(lowest_x, highest_x);
-			lowest_y = 0;
-			highest_y = max_alt;
-			y_axis_title = 'Altitude [' + alt_unit + ']';
-			y_axis_tick = calculateTickInterval(lowest_y, highest_y);
-		}
-	} else {
-		for (const plane in final_data) {
-			let dash_index = 0;
-			for (const mode in final_data[plane]) {
-				let plane_mode = plane + '(' + mode + ')';
-				final_object.push({
-					y: final_data[plane][mode],
-					x: alt_vals,
-					mode: 'lines',
-					line: { width: 2, shape: 'linear', dash: line_dashes[dash_index] },
-					type: 'linegl',
-					name: plane_mode,
-					marker: { color: colour_set[colo_index] },
-					hoverinfo: 'x+y+text',
-					text: plane_mode
-					//         hovertemplate:
-					//         "<b>%{text}</b><br><br>" +
-					// "%{yaxis.title.text}: %{y:$,.0f}<br>" +
-					// "%{xaxis.title.text}: %{x:}<br>" +
-					// "Number Employed: %{marker.size:,}" +
-					// "<extra></extra>"
-				});
-				dash_index++;
-			}
-			colo_index++;
-		}
-		no_bugwarning_angle = 0;
-		no_bugwarning_x = 1;
-		no_bugwarning_y = -0.008;
-		no_bugwarning_x_anchor = 'right';
-		no_bugwarning_y_anchor = 'bottom';
-		if (performance_type === 'power') {
-			title =
-				'Engine power at different altitudes, when flying at ' +
-				speed +
-				' ' +
-				speed_unit +
-				' ' +
-				speed_type;
-			highest_y = maxAllValues;
-			lowest_y = minAllValues;
-			highest_y = highest_y * 1.05;
-			lowest_y = lowest_y * 0.95;
-			if (lowest_y < 0) {
-				lowest_y = 0;
-			}
-			y_axis_title = 'Power [' + power_unit + ']';
-			y_axis_tick = calculateTickInterval(lowest_y, highest_y);
-			lowest_x = 0;
-			highest_x = max_alt;
-			x_axis_title = 'Altitude [' + alt_unit + ']';
-			x_axis_tick = calculateTickInterval(lowest_x, highest_x);
-		} else if (performance_type === 'power/weight') {
-			title =
-				'Power / Weight at different altitudes, when flying at ' +
-				speed +
-				' ' +
-				speed_unit +
-				' ' +
-				speed_type;
-			highest_y = maxAllValues;
-			lowest_y = minAllValues;
-			highest_y = highest_y * 1.05;
-			lowest_y = lowest_y * 0.95;
-			if (lowest_y < 0) {
-				lowest_y = 0;
-			}
-			y_axis_title = 'Power / Weight [' + power_unit + '/' + weight_unit + ']';
-			y_axis_tick = calculateTickInterval(lowest_y, highest_y);
-			lowest_x = 0;
-			highest_x = max_alt;
-			x_axis_title = 'Altitude [' + alt_unit + ']';
-			x_axis_tick = calculateTickInterval(lowest_x, highest_x);
-		}
-	}
-	var layout = {
-		uirevision: 'true',
-		paper_bgcolor: bg_col,
-		plot_bgcolor: bg_col,
-		autosize: true,
-		title: {
-			text: title,
-			font: { size: plotTypography.title },
-			x: 0.5,
-			y: isMobileViewport ? 0.93 : 1,
-			yanchor: 'top'
-		},
-		legend: {
-			yanchor: 'top',
-			y: 1,
-			xanchor: 'right',
-			x: 1,
-			font: { size: plotTypography.legend, family: font_fam },
-			title: null
-		},
-		showlegend: true,
-		hoverlabel: {
-			font: { color: '#fdfdfde6', size: plotTypography.hover },
-			bordercolor: '#142E40',
-			borderwidth: 1
-		},
-		hovermode: hoverstyle,
-		font: { family: font_fam, color: '#fdfdfde6' },
-		margin: plotTypography.margin,
-		modebar: {
-			orientation: isMobileViewport ? 'h' : 'v',
-			bgcolor: 'rgba(0,0,0,0)',
-			color: 'rgb(205, 215, 225)',
-			activecolor: 'rgb(0, 111, 161)',
-			font: { size: plotTypography.modebar },
-			add: ['hoverclosest', 'hovercompare'],
-			remove: ['resetScale2d']
-		},
-		dragmode: 'pan',
-		annotations: [
-			{
-				text: x_axis_title,
-				showarrow: false,
-				font: { size: plotTypography.axisTitle },
-				x: axisTitleXAnnotationX,
-				y: axisTitleXAnnotationY,
-				xref: 'paper',
-				yref: 'paper',
-				xanchor: 'right',
-				yanchor: 'top'
-			},
-			{
-				text: y_axis_title,
-				showarrow: false,
-				textangle: -90,
-				font: { size: plotTypography.axisTitle },
-				x: axisTitleYAnnotationX,
-				y: axisTitleYAnnotationY,
-				xref: 'paper',
-				yref: 'paper',
-				xanchor: 'left',
-				yanchor: 'top'
-			},
-			{
-				text: air_temp_info,
-				showarrow: false,
-				font: { size: plotTypography.annotation },
-				x: 0,
-				y: 1,
-				xref: 'paper',
-				yref: 'paper',
-				xanchor: 'left',
-				yanchor: 'bottom'
-			},
-			{
-				text: "Do not use in War Thunder bug reports, because it's not <br>a valid source. Otherwise Gaijin can ban datamining forever!",
-				opacity: 0.15,
-				showarrow: false,
-				font: { size: plotTypography.annotation, color: 'white', family: font_fam },
-				x: no_bugwarning_x,
-				y: no_bugwarning_y,
-				xref: 'paper',
-				yref: 'paper',
-				xanchor: no_bugwarning_x_anchor,
-				yanchor: no_bugwarning_y_anchor,
-				textangle: no_bugwarning_angle
-			}
-		],
-		xaxis: {
-			gridcolor: 'rgba(47, 62, 73, 0.3)',
-			gridwidth: 0.4,
-			zerolinecolor: 'rgba(47, 62, 73, 0.3)',
-			zerolinewidth: 3,
-			maxallowed: highest_x * 2,
-			minallowed: 0,
-			font: { size: plotTypography.axis, family: font_fam, color: '#fdfdfde6' },
-			title: { text: '' },
-			range: [lowest_x, highest_x],
-			// autorange: true,
-			dtick: x_axis_tick,
-			ticklabelposition: 'inside',
-			ticks: 'inside',
-			ticklabelstandoff: 0,
-			tickfont: { size: plotTypography.tick }
-		},
-		yaxis: {
-			gridcolor: 'rgba(47, 62, 73, 0.3)',
-			gridwidth: 0.4,
-			zerolinecolor: 'rgba(47, 62, 73, 0.3)',
-			zerolinewidth: 3,
-			font: { size: plotTypography.axis, family: font_fam, color: '#fdfdfde6' },
-			title: { text: '' },
-			range: [lowest_y, highest_y],
-			maxallowed: highest_y * 2,
-			minallowed: 0,
-			// autorange: true,
-			dtick: y_axis_tick,
-			ticklabelposition: 'inside',
-			ticks: 'inside',
-			ticklabelstandoff: 0,
-			tickfont: { size: plotTypography.tick }
-		},
-		images: [
-			{
-				x: 0,
-				y: 0.0015,
-				sizex: 0.11,
-				sizey: 0.11,
-				source: 'images/WTAPC_logo_nograph_text.png',
-				opacity: 0.5,
-				xanchor: 'left',
-				xref: 'paper',
-				yanchor: 'bottom',
-				yref: 'paper'
-			}
-		]
-	};
-	var config = {
-		scrollZoom: true,
-		displayModeBar: true,
-		displaylogo: false,
-		responsive: true,
-		showEditInChartStudio: false,
-		plotlyServerURL: 'https://chart-studio.plotly.com',
-		toImageButtonOptions: {
-			filename: 'performance_plot',
-			format: 'png'
-		}
-	};
-	// console.log(final_object);
-	Plotly.react('graphid', final_object, layout, config);
-}
-
-export function plotly_generator_with_slider(
+export function plotly_2D_generator(
 	power_matrices: Array<{
 		engine: number;
 		mode: string;
@@ -1370,9 +1735,7 @@ export function plotly_generator_with_slider(
 		planeName?: string;
 		selectionIndex?: number;
 	}>,
-	alt_values: number[],
 	speed_values: number[],
-	chosenplanes: string[],
 	chosenplanes_ingame: string[],
 	power_unit: string,
 	thrust_unit: string,
@@ -1393,11 +1756,15 @@ export function plotly_generator_with_slider(
 	performance_type: string,
 	colour_set: string[],
 	hoverstyle: string,
-	bg_col: string
+	bg_col: string,
+	vs_mode: boolean = false,
+	vs_label: string | null = null,
+	show_slider: boolean = true
 ): void {
 	const font_fam = 'Inter';
 	const isMobileViewport = isMobilePlotViewport();
 	const plotTypography = getPlotTypography(isMobileViewport);
+	const effectiveHoverMode = getEffectiveHoverMode(hoverstyle, axis_layout);
 
 	// Define types for our lookup table
 	interface TraceData {
@@ -1492,11 +1859,10 @@ export function plotly_generator_with_slider(
 		marker: { color: string };
 		hoverinfo: string;
 		text: string;
+		hoverlabel?: { bgcolor: string; bordercolor: string };
 	}
 
 	const traces: Trace[] = [];
-
-	const line_dashes = ['solid', 'dash'];
 
 	// Create initial traces (more efficiently)
 	for (const key in firstSpeedData) {
@@ -1504,12 +1870,13 @@ export function plotly_generator_with_slider(
 		const { planeName, mode } = traceData;
 
 		// Format the display name
-		const displayName = `${planeName} (${mode})`;
+		const displayName = mode ? `${planeName} (${mode})` : planeName;
 
 		const colo_index = traceData.selectionIndex;
+		const traceColor = colour_set[colo_index % colour_set.length];
 
-		// Dash style depends on mode
-		const dash_index = mode === 'WEP' ? 0 : 1;
+		// In VS mode keep comparison line solid regardless of source mode.
+		const dashStyle = vs_mode ? 'solid' : mode === 'WEP' ? 'solid' : 'dash';
 
 		// Create trace without unnecessary array copying
 		if (axis_layout) {
@@ -1517,24 +1884,26 @@ export function plotly_generator_with_slider(
 				x: traceData.x, // Direct reference
 				y: traceData.y,
 				mode: 'lines',
-				line: { width: 2, shape: 'linear', dash: line_dashes[dash_index] },
+				line: { width: 2, shape: 'linear', dash: dashStyle },
 				type: 'linegl',
 				name: displayName,
-				marker: { color: colour_set[colo_index % colour_set.length] },
+				marker: { color: traceColor },
 				hoverinfo: 'x+y+text',
-				text: displayName
+				text: displayName,
+				hoverlabel: getTraceHoverLabelStyle(effectiveHoverMode, bg_col, traceColor)
 			});
 		} else {
 			traces.push({
 				y: traceData.x,
 				x: traceData.y,
 				mode: 'lines',
-				line: { width: 2, shape: 'linear', dash: line_dashes[dash_index] },
+				line: { width: 2, shape: 'linear', dash: dashStyle },
 				type: 'linegl',
 				name: displayName,
-				marker: { color: colour_set[colo_index % colour_set.length] },
+				marker: { color: traceColor },
 				hoverinfo: 'x+y+text',
-				text: displayName
+				text: displayName,
+				hoverlabel: getTraceHoverLabelStyle(effectiveHoverMode, bg_col, traceColor)
 			});
 		}
 	}
@@ -1545,34 +1914,35 @@ export function plotly_generator_with_slider(
 		data: Array<{ x?: number[]; y?: number[] }>;
 	}
 
-	// Create frames efficiently
-	const frames: Frame[] = new Array(speedIndices.length);
+	const frames: Frame[] = show_slider ? new Array(speedIndices.length) : [];
 
-	for (let i = 0; i < speedIndices.length; i++) {
-		const speedIdx = speedIndices[i];
-		const speedData = lookup[speedIdx];
-		const frameData: Array<{ x?: number[]; y?: number[] }> = [];
+	if (show_slider) {
+		for (let i = 0; i < speedIndices.length; i++) {
+			const speedIdx = speedIndices[i];
+			const speedData = lookup[speedIdx];
+			const frameData: Array<{ x?: number[]; y?: number[] }> = [];
 
-		for (const key in speedData) {
-			const data = speedData[key];
+			for (const key in speedData) {
+				const data = speedData[key];
 
-			if (axis_layout) {
-				frameData.push({
-					x: data.x,
-					y: data.y
-				});
-			} else {
-				frameData.push({
-					y: data.x,
-					x: data.y
-				});
+				if (axis_layout) {
+					frameData.push({
+						x: data.x,
+						y: data.y
+					});
+				} else {
+					frameData.push({
+						y: data.x,
+						x: data.y
+					});
+				}
 			}
-		}
 
-		frames[i] = {
-			name: speed_values[speedIdx].toString(),
-			data: frameData
-		};
+			frames[i] = {
+				name: speed_values[speedIdx].toString(),
+				data: frameData
+			};
+		}
 	}
 
 	// Define slider step type
@@ -1589,32 +1959,33 @@ export function plotly_generator_with_slider(
 		];
 	}
 
-	// Create slider steps efficiently
-	const sliderSteps: SliderStep[] = new Array(speedIndices.length);
+	const sliderSteps: SliderStep[] = show_slider ? new Array(speedIndices.length) : [];
 
-	for (let i = 0; i < speedIndices.length; i++) {
-		const speedIdx = speedIndices[i];
-		const speedKph = speed_values[speedIdx];
-		const speedDisplay = (speedKph / speed_factor).toFixed(0);
+	if (show_slider) {
+		for (let i = 0; i < speedIndices.length; i++) {
+			const speedIdx = speedIndices[i];
+			const speedKph = speed_values[speedIdx];
+			const speedDisplay = (speedKph / speed_factor).toFixed(0);
 
-		sliderSteps[i] = {
-			method: 'animate',
-			label: speedDisplay,
-			args: [
-				[speedKph.toString()],
-				{
-					mode: 'immediate',
-					transition: { duration: 0 },
-					frame: { duration: 0, redraw: false }
-				}
-			]
-		};
+			sliderSteps[i] = {
+				method: 'animate',
+				label: speedDisplay,
+				args: [
+					[speedKph.toString()],
+					{
+						mode: 'immediate',
+						transition: { duration: 0 },
+						frame: { duration: 0, redraw: false }
+					}
+				]
+			};
+		}
 	}
 
 	// Calculate axis ranges from all plotted values (all speeds), preserving decimal precision
 	const { min: rawMinValue, max: rawMaxValue } = getMinMax(all_values);
 	const rangePadding = Math.max((rawMaxValue - rawMinValue) * 0.05, rawMaxValue === 0 ? 1 : rawMaxValue * 0.01);
-	const paddedMinValue = Math.max(0, rawMinValue - rangePadding);
+	const paddedMinValue = getGraphAutoMin(rawMinValue, rangePadding, vs_mode);
 	const paddedMaxValue = rawMaxValue + rangePadding;
 
 	const autoAxisMin = paddedMinValue;
@@ -1624,7 +1995,7 @@ export function plotly_generator_with_slider(
 	const hasValidManualRange =
 		Number.isFinite(manualAxisMin) &&
 		Number.isFinite(manualAxisMax) &&
-		manualAxisMin >= 0 &&
+		(vs_mode || manualAxisMin >= 0) &&
 		manualAxisMax > manualAxisMin;
 	const useManualRange = !autoscale && hasValidManualRange;
 	const effectiveAxisMin = useManualRange ? manualAxisMin : autoAxisMin;
@@ -1634,6 +2005,9 @@ export function plotly_generator_with_slider(
 	const lowest_x = axis_layout ? effectiveAxisMin : 0;
 	const highest_y = axis_layout ? max_alt : effectiveAxisMax;
 	const lowest_y = axis_layout ? 0 : effectiveAxisMin;
+	const responseMaxAbs = Math.max(Math.abs(effectiveAxisMin), Math.abs(effectiveAxisMax), 1);
+	const responseMinAllowed = vs_mode ? -responseMaxAbs * 2 : 0;
+	const responseMaxAllowed = responseMaxAbs * 2;
 
 	window.dispatchEvent(
 		new CustomEvent('wtapc-power-axis-range', {
@@ -1653,27 +2027,30 @@ export function plotly_generator_with_slider(
 				: performance_type === 'thrust'
 					? 'Engine thrust'
 					: 'Thrust / Weight';
-	const title = `${metricTitle} at altitudes`;
+	const title = vs_mode
+		? `${metricTitle} difference (${vs_label ?? 'Plane 1 - Plane 2'}) at altitudes`
+		: `${metricTitle} at altitudes`;
+	const responseAxisLabelPrefix = vs_mode ? 'Δ ' : '';
 
 	const x_axis_title = axis_layout
 		? performance_type === 'power'
-			? `Power [${power_unit}]`
+			? `${responseAxisLabelPrefix}Power [${power_unit}]`
 			: performance_type === 'power/weight'
-				? `Power / Weight [${power_unit}/${weight_unit}]`
+				? `${responseAxisLabelPrefix}Power / Weight [${power_unit}/${weight_unit}]`
 				: performance_type === 'thrust'
-					? `Thrust [${thrust_unit}]`
-					: `Thrust / Weight [${thrust_unit}/${weight_unit}]`
+					? `${responseAxisLabelPrefix}Thrust [${thrust_unit}]`
+					: `${responseAxisLabelPrefix}Thrust / Weight [${thrust_unit}/${weight_unit}]`
 		: `Altitude [${alt_unit}]`;
 
 	const y_axis_title = axis_layout
 		? `Altitude [${alt_unit}]`
 		: performance_type === 'power'
-			? `Power [${power_unit}]`
+			? `${responseAxisLabelPrefix}Power [${power_unit}]`
 			: performance_type === 'power/weight'
-				? `Power / Weight [${power_unit}/${weight_unit}]`
+				? `${responseAxisLabelPrefix}Power / Weight [${power_unit}/${weight_unit}]`
 				: performance_type === 'thrust'
-					? `Thrust [${thrust_unit}]`
-					: `Thrust / Weight [${thrust_unit}/${weight_unit}]`;
+					? `${responseAxisLabelPrefix}Thrust [${thrust_unit}]`
+					: `${responseAxisLabelPrefix}Thrust / Weight [${thrust_unit}/${weight_unit}]`;
 
 	// Calculate tick intervals once
 	const x_axis_tick = calculateTickInterval(lowest_x, highest_x);
@@ -1703,7 +2080,7 @@ export function plotly_generator_with_slider(
 			text: title,
 			font: { size: plotTypography.title },
 			x: 0.5,
-			y: isMobileViewport ? 0.93 : 1,
+			y: isMobileViewport ? 0.93 : 0.99,
 			yanchor: 'top'
 		},
 		legend: {
@@ -1716,11 +2093,11 @@ export function plotly_generator_with_slider(
 		},
 		showlegend: true,
 		hoverlabel: {
-			font: { color: '#fdfdfde6', size: plotTypography.hover },
+			font: { color: '#fdfdfde6', size: plotTypography.hover, family: font_fam },
 			bordercolor: '#142E40',
 			borderwidth: 1
 		},
-		hovermode: hoverstyle,
+		hovermode: effectiveHoverMode,
 		font: { family: font_fam, color: '#fdfdfde6' },
 		margin: { ...plotTypography.margin, b: isMobileViewport ? 64 : 100 },
 		modebar: {
@@ -1730,7 +2107,7 @@ export function plotly_generator_with_slider(
 			activecolor: 'rgb(0, 111, 161)',
 			font: { size: plotTypography.modebar },
 			add: ['hoverclosest', 'hovercompare'],
-			remove: ['resetScale2d']
+			remove: ['autoscale']
 		},
 		dragmode: 'pan',
 		annotations: [
@@ -1769,7 +2146,7 @@ export function plotly_generator_with_slider(
 				yanchor: 'bottom'
 			},
 			{
-				text: "Do not use in War Thunder bug reports, because it's not <br>a valid source. Otherwise Gaijin can ban datamining forever!",
+				text: "Do not use in War Thunder bug reports, because it's not <br>a valid source. Otherwise Gaijin can ban datamining.",
 				opacity: 0.15,
 				showarrow: false,
 				font: { size: plotTypography.annotation, color: 'white', family: font_fam },
@@ -1787,8 +2164,8 @@ export function plotly_generator_with_slider(
 			gridwidth: 0.4,
 			zerolinecolor: 'rgba(47, 62, 73, 0.5)',	
 			zerolinewidth: 3,
-			maxallowed: highest_x * 2,
-			minallowed: 0,
+			maxallowed: axis_layout ? responseMaxAllowed : highest_x * 2,
+			minallowed: axis_layout ? responseMinAllowed : 0,
 			font: { size: plotTypography.axis, family: font_fam, color: '#fdfdfde6' },
 			title: { text: '' },
 			range: [lowest_x, highest_x],
@@ -1806,8 +2183,8 @@ export function plotly_generator_with_slider(
 			font: { size: plotTypography.axis, family: font_fam, color: '#fdfdfde6' },
 			title: { text: '' },
 			range: [lowest_y, highest_y],
-			maxallowed: highest_y * 2,
-			minallowed: 0,
+			maxallowed: axis_layout ? highest_y * 2 : responseMaxAllowed,
+			minallowed: axis_layout ? 0 : responseMinAllowed,
 			dtick: y_axis_tick,
 			ticklabelposition: 'inside',
 			ticks: 'inside',
@@ -1828,33 +2205,35 @@ export function plotly_generator_with_slider(
 				yref: 'paper'
 			}
 		],
-		sliders: [
-			{
-				pad: { l: 0, t: 10, b: 6, r: 0 },
-				currentvalue: {
-					visible: true,
-					id: 'speed_annotation',
-					prefix: speed_type + ' Speed: ',
-					suffix: ' ' + speed_unit,
-					xanchor: 'left',
-					offset: 0,
-					font: { size: plotTypography.sliderCurrent, color: '#fdfdfde6' }
-				},
-				len: 1,
-				x: 0,
-				xanchor: 'left',
-				steps: sliderSteps,
-				tickvals: [0, speedIndices.length - 1],
-				ticktext: [
-					(speed_values[speedIndices[0]] / speed_factor).toFixed(0),
-					(speed_values[speedIndices[speedIndices.length - 1]] / speed_factor).toFixed(0)
-				],
-				font: { color: '#fdfdfde6' },
-				tickcolor: '#fdfdfde6',
-				tickwidth: 2,
-				active: initialSliderStep
-			}
-		]
+		sliders: show_slider
+			? [
+					{
+						pad: { l: 0, t: 10, b: 6, r: 0 },
+						currentvalue: {
+							visible: true,
+							id: 'speed_annotation',
+							prefix: speed_type + ' Speed: ',
+							suffix: ' ' + speed_unit,
+							xanchor: 'left',
+							offset: 0,
+							font: { size: plotTypography.sliderCurrent, color: '#fdfdfde6' }
+						},
+						len: 1,
+						x: 0,
+						xanchor: 'left',
+						steps: sliderSteps,
+						tickvals: [0, speedIndices.length - 1],
+						ticktext: [
+							(speed_values[speedIndices[0]] / speed_factor).toFixed(0),
+							(speed_values[speedIndices[speedIndices.length - 1]] / speed_factor).toFixed(0)
+						],
+						font: { color: '#fdfdfde6' },
+						tickcolor: '#fdfdfde6',
+						tickwidth: 2,
+						active: initialSliderStep
+					}
+				]
+			: []
 	};
 
 	// Create the plot config
@@ -1873,7 +2252,12 @@ export function plotly_generator_with_slider(
 
 	Plotly.purge('graphid');
 
-	// Create the plot with all data
+	if (!show_slider) {
+		sliderChangeListener = null;
+		Plotly.react('graphid', traces, layout, config);
+		return;
+	}
+
 	Plotly.newPlot('graphid', {
 		data: traces,
 		layout,

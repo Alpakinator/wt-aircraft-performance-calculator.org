@@ -17,8 +17,8 @@
 	import RiFullscreenLine from '~icons/ri/fullscreen-line';
 	import RiFullscreenExitLine from '~icons/ri/fullscreen-exit-line';
 
-	let performance_type = $state('power/weight');
-	let graph_d = '2D';
+	let performance_type = $state('thrust/weight');
+	let graph_d = $state('2D');
 	let autoscale = $state(true);
 	let lowest_resp_var = $state(0);
 	let highest_resp_var = $state(0);
@@ -27,7 +27,7 @@
 	let weight_unit = $state('kg');
 	let power_modes = $state(['WEP']);
 	let speed_type = $state('IAS');
-	let speed = $state(300);
+	let speed = $state(700);
 	let latestAutoAxisMin = $state(0);
 	let latestAutoAxisMax = $state(0);
 	let stupid = $state([0, 1, 5, 10]);
@@ -37,11 +37,12 @@
 	let air_temp = $state(15);
 	let air_temp_unit = $state('°C');
 	let axis_layout = $state(false);
-	let chosenplanes = $state(['j7w1', 'j7w1:2']);
+	let vs_mode = $state(true);
+	let chosenplanes = $state(['mig-19s', 'lightning_f6']);
 	let chosenplanes_ingame = $state([]);
 	let fuel_percents = $state([]);
 	let include_boosters = $state([]);
-	let plane_versions = $state(['2.53.0.6', '2.29.0.5']);
+	let plane_versions = $state([]);
 	let bg_col = getComputedStyle(document.body).getPropertyValue('--bg-col');
 
 	// let colour_set = [
@@ -67,25 +68,25 @@
 	// ];
 
 	let colour_set = [
-		'rgb(228, 26, 28)',
-		'rgb(0, 111, 161)',
-		'rgb(77, 175, 74)',
-		'rgb(152, 78, 163)',
-		'rgb(230, 207, 26)',
-		'rgb(255, 90, 0)',
-		'rgb(166, 86, 40)',
-		'rgb(46, 172, 212)',
-		'rgb(153, 153, 153)',
-		'rgb(27, 158, 119)',
-		'rgb(217, 95, 2)',
-		'rgb(117, 112, 179)',
-		'rgb(231, 41, 138)',
-		'rgb(130, 201, 53)',
-		'rgb(230, 171, 2)',
-		'rgb(166, 118, 29)',
-		'rgb(55, 145, 0)',
-		'rgb(254, 90, 206)',
-		'rgb(255, 0, 100)'
+		'rgba(228, 26, 28, 1)',
+		'rgba(0, 111, 161, 1)',
+		'rgba(77, 175, 74, 1)',
+		'rgba(152, 78, 163, 1)',
+		'rgba(230, 207, 26, 1)',
+		'rgba(255, 90, 0, 1)',
+		'rgba(166, 86, 40, 1)',
+		'rgba(46, 172, 212, 1)',
+		'rgba(153, 153, 153, 1)',
+		'rgba(27, 158, 119, 1)',
+		'rgba(217, 95, 2, 1)',
+		'rgba(117, 112, 179, 1)',
+		'rgba(231, 41, 138, 1)',
+		'rgba(130, 201, 53, 1)',
+		'rgba(230, 171, 2, 1)',
+		'rgba(166, 118, 29, 1)',
+		'rgba(55, 145, 0, 1)',
+		'rgba(254, 90, 206, 1)',
+		'rgba(255, 0, 100, 1)'
 	];
 
 	let isGraphVisible = $state(true);
@@ -278,6 +279,7 @@
 			fuel_percents,
 			include_boosters,
 			plane_versions,
+			vs_mode,
 			colour_set,
 			bg_col
 		);
@@ -309,6 +311,7 @@
 			fuel_percents,
 			include_boosters,
 			plane_versions,
+			vs_mode,
 			colour_set,
 			bg_col
 		});
@@ -354,6 +357,7 @@
 			fuel_percents,
 			include_boosters,
 			plane_versions,
+			vs_mode,
 			colour_set,
 			bg_col
 		});
@@ -371,12 +375,16 @@
 		}
 	}
 
+	function handleGraphDimensionToggle(checked: boolean) {
+		graph_d = checked ? '3D' : '2D';
+	}
+
 	const MANUAL_AXIS_MIN_GAP = 0.001;
 
 	function updateManualAxisMin(rawValue: number) {
 		if (!Number.isFinite(rawValue)) return;
 
-		lowest_resp_var = Number(Math.max(0, rawValue).toFixed(3));
+		lowest_resp_var = Number((vs_mode ? rawValue : Math.max(0, rawValue)).toFixed(3));
 		if (highest_resp_var <= lowest_resp_var) {
 			highest_resp_var = Number((lowest_resp_var + MANUAL_AXIS_MIN_GAP).toFixed(3));
 		}
@@ -390,6 +398,29 @@
 			highest_resp_var = Number((lowest_resp_var + MANUAL_AXIS_MIN_GAP).toFixed(3));
 		}
 	}
+
+	function togglePowerMode(mode: string, checked: boolean) {
+		if (checked) {
+			if (!power_modes.includes(mode)) {
+				power_modes = [...power_modes, mode];
+			}
+		} else {
+			if (power_modes.length <= 1) {
+				return;
+			}
+			power_modes = power_modes.filter((existingMode) => existingMode !== mode);
+		}
+	}
+
+	$effect(() => {
+		if (!vs_mode) {
+			return;
+		}
+
+		if (power_modes.length === 0) {
+			power_modes = ['WEP'];
+		}
+	});
 
 	function launchFullScreen(element) {
 		if (element.requestFullScreen) {
@@ -592,6 +623,7 @@
 					fuel_percents,
 					include_boosters,
 					plane_versions,
+					vs_mode,
 					colour_set,
 					bg_col
 				)}
@@ -632,7 +664,7 @@
 						class="input-field"
 						title="Fixed minimum value of the power (or power/weight) axis"
 						type="number"
-						min="0"
+						min={vs_mode ? undefined : 0}
 						max="30000"
 						step="any"
 						style="width:5ch"
@@ -669,12 +701,25 @@
 		<grid-item id="perf-type">
 			<label>
 				Graph&nbspType:&nbsp
-				<AlpaSelect
-					bind:value={performance_type}
-					options={performances}
-					id="performance-select"
-					aria-label="performance metric to graph"
-				/>
+				<div id="graph_type_controls">
+					<AlpaSelect
+						bind:value={performance_type}
+						options={performances}
+						id="performance-select"
+						aria-label="performance metric to graph"
+					/>
+					<Switch.Root
+						class="b-switch-root"
+						id="graph_dimension_switch"
+						checked={graph_d === '3D'}
+						onCheckedChange={handleGraphDimensionToggle}
+						aria-label="toggle between 2D and 3D graph dimensions"
+					>
+						<span id="graph_2dsvg">2D</span>
+						<span id="graph_3dsvg">3D</span>
+						<Switch.Thumb />
+					</Switch.Root>
+				</div>
 			</label>
 
 			<AlpaPopover>
@@ -758,13 +803,7 @@
 				<label title={power_mode[1]}>
 					<Checkbox.Root
 						checked={power_modes.includes(power_mode[0])}
-						onCheckedChange={(checked) => {
-							if (checked) {
-								power_modes = [...power_modes, power_mode[0]];
-							} else {
-								power_modes = power_modes.filter((mode) => mode !== power_mode[0]);
-							}
-						}}
+						onCheckedChange={(checked) => togglePowerMode(power_mode[0], checked)}
 						class="b-checkbox-root"
 					>
 						{#snippet children({ checked })}
@@ -914,6 +953,7 @@
 
 	<Plane_autocomplete
 		bind:performance_type
+		bind:vs_mode
 		bind:chosenplanes
 		bind:chosenplanes_ingame
 		bind:fuel_percents
@@ -1096,6 +1136,53 @@
 	}
 	:global(#performance-select) {
 		width: 12rem;
+	}
+	#graph_type_controls {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		flex-wrap: nowrap;
+		height: 100%;
+	}
+
+	#perf-type label {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		white-space: nowrap;
+	}
+
+	:global(#graph_dimension_switch) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 3.2rem;
+		min-width: 3rem;
+		max-width: 4.2rem;
+		padding: 0 0rem;
+		flex: 0 0 auto;
+		height: 100%;
+		align-self: stretch;
+		font-size: inherit;
+	}
+
+	#graph_2dsvg,
+	#graph_3dsvg {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 1.6rem;
+		height: 100%;
+		font-size: inherit;
+		line-height: normal;
+	}
+
+	:global(#graph_dimension_switch[data-state='unchecked'] > #graph_2dsvg) {
+		background-color: rgba(0, 111, 161, 1);
+	}
+
+	:global(#graph_dimension_switch[data-state='checked'] > #graph_3dsvg) {
+		background-color: rgba(0, 111, 161, 1);
 	}
 
 	:global(#power-select) {
