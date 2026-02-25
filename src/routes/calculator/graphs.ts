@@ -11,7 +11,7 @@ import {
 	createPowerMatrix
 } from './engine_power';
 
-let hoverstyle = 'x unified';
+let hoverstyle = 'x';
 let sliderChangeListener: ((event: any) => void) | null = null;
 const USE_CALCULATED_GRAPH_MIN = false;
 
@@ -1364,6 +1364,95 @@ function toRgba(colour: string, alpha: number): string {
 	return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
 }
 
+function getGraphContainerWidthPx(): number {
+	if (typeof document === 'undefined') {
+		return 0;
+	}
+
+	const graphDiv = document.getElementById('graphid');
+	if (graphDiv && graphDiv.clientWidth > 0) {
+		return graphDiv.clientWidth;
+	}
+
+	if (typeof window !== 'undefined' && window.innerWidth > 0) {
+		return window.innerWidth;
+	}
+
+	return 0;
+}
+
+function getLegendMaxWidthPx(isMobileViewport: boolean): number {
+	const containerWidth = getGraphContainerWidthPx();
+	const widthRatio = isMobileViewport ? 0.45 : 0.66;
+	return containerWidth > 0 ? containerWidth * widthRatio : 0;
+}
+
+function measureTextWidthPx(text: string, fontSizePx: number, fontFamily: string): number {
+	if (typeof document === 'undefined') {
+		return text.length * fontSizePx * 0.6;
+	}
+
+	const canvas = document.createElement('canvas');
+	const context = canvas.getContext('2d');
+	if (!context) {
+		return text.length * fontSizePx * 0.6;
+	}
+
+	context.font = `${fontSizePx}px ${fontFamily}`;
+	return context.measureText(text).width;
+}
+
+function truncateLegendLabelToWidth(
+	label: string,
+	maxTextWidthPx: number,
+	fontSizePx: number,
+	fontFamily: string
+): string {
+	if (maxTextWidthPx <= 0) {
+		return label;
+	}
+
+	if (measureTextWidthPx(label, fontSizePx, fontFamily) <= maxTextWidthPx) {
+		return label;
+	}
+
+	const ellipsis = '…';
+	let low = 0;
+	let high = label.length;
+	let best = '';
+
+	while (low <= high) {
+		const mid = Math.floor((low + high) / 2);
+		const candidate = `${label.slice(0, mid)}${ellipsis}`;
+		const width = measureTextWidthPx(candidate, fontSizePx, fontFamily);
+
+		if (width <= maxTextWidthPx) {
+			best = candidate;
+			low = mid + 1;
+		} else {
+			high = mid - 1;
+		}
+	}
+
+	return best || ellipsis;
+}
+
+function getConstrainedLegendLabel(
+	fullLabel: string,
+	isMobileViewport: boolean,
+	legendFontSizePx: number,
+	fontFamily: string
+): string {
+	const maxLegendWidthPx = getLegendMaxWidthPx(isMobileViewport);
+	if (maxLegendWidthPx <= 0) {
+		return fullLabel;
+	}
+
+	const legendSymbolAndPaddingPx = 42;
+	const maxTextWidthPx = Math.max(40, maxLegendWidthPx - legendSymbolAndPaddingPx);
+	return truncateLegendLabelToWidth(fullLabel, maxTextWidthPx, legendFontSizePx, fontFamily);
+}
+
 function getEffectiveHoverMode(hovermode: string, axis_layout: boolean): string | false {
 	if (!axis_layout) {
 		return hovermode;
@@ -1459,7 +1548,13 @@ function plotly_generator_3d(
 		);
 
 		const displayName = planeName || chosenplanes_ingame[engine] || `Engine ${engine}`;
-		const traceName = mode ? `${displayName} (${mode})` : displayName;
+		const fullTraceName = mode ? `${displayName} (${mode})` : displayName;
+		const traceName = getConstrainedLegendLabel(
+			fullTraceName,
+			isMobileViewport,
+			plotTypography.legend,
+			font_fam
+		);
 		const colourIndex = selectionIndex ?? engine;
 		const baseColour = colour_set[colourIndex % colour_set.length];
 
@@ -1495,7 +1590,7 @@ function plotly_generator_3d(
 				y: responseMatrix,
 				z: altitudeMatrix,
 				hovertemplate:
-					`${traceName}<br>${speed_type} Speed: %{x} ${speed_unit}` +
+					`${fullTraceName}<br>${speed_type} Speed: %{x} ${speed_unit}` +
 					`<br>${getMetricAxisLabel(performance_type, power_unit, thrust_unit, weight_unit)}: %{y}` +
 					`<br>Altitude: %{z} ${alt_unit}` +
 					'<extra></extra>'
@@ -1507,7 +1602,7 @@ function plotly_generator_3d(
 				y,
 				z: responseMatrix,
 				hovertemplate:
-					`${traceName}<br>${speed_type} Speed: %{x} ${speed_unit}` +
+					`${fullTraceName}<br>${speed_type} Speed: %{x} ${speed_unit}` +
 					`<br>Altitude: %{y} ${alt_unit}<br>${getMetricAxisLabel(performance_type, power_unit, thrust_unit, weight_unit)}: %{z}` +
 					'<extra></extra>'
 			});
@@ -1549,7 +1644,7 @@ function plotly_generator_3d(
 	const baseMetricLabel = getMetricAxisLabel(performance_type, power_unit, thrust_unit, weight_unit);
 	const metricLabel = vs_mode ? `Δ ${baseMetricLabel}` : baseMetricLabel;
 	const title = vs_mode
-		? `${getMetricTitle(performance_type)} difference (${vs_label ?? 'Plane 1 - Plane 2'}) by altitude and speed`
+		? `${getMetricTitle(performance_type)} difference`
 		: `${getMetricTitle(performance_type)} by altitude and speed`;
 	const sceneTickFontSize = isMobileViewport ? 8 : 11;
 	const sceneAxisTitleFontSize = isMobileViewport ? 10 : 12;
@@ -1567,26 +1662,24 @@ function plotly_generator_3d(
 		title: {
 			text: title,
 			font: { size: plotTypography.title },
-			x: 0.5,
-			y: isMobileViewport ? 0.93 : 0.99,
+			x: 0,
+			xref: 'paper',
+			xanchor: 'left',
+			y: isMobileViewport ? 0.9 : 0.99,
 			yanchor: 'top'
 		},
 		showlegend: true,
-		legend: {
-			yanchor: 'top',
-			y: 1,
-			xanchor: 'right',
-			x: 1,
-			font: { size: plotTypography.legend, family: font_fam },
-			title: null
-		},
+		legend: getLegendLayout(traces.length, font_fam, plotTypography.legend),
 		hoverlabel: {
 			font: { color: '#fdfdfde6', size: plotTypography.hover, family: font_fam },
 			bordercolor: '#142E40',
 			borderwidth: 1
 		},
 		font: { family: font_fam, color: '#fdfdfde6' },
-		margin: plotTypography.margin3d,
+		margin: {
+			...plotTypography.margin3d,
+			autoexpand: false
+		},
 		modebar: {
 			orientation: isMobileViewport ? 'h' : 'v',
 			bgcolor: 'rgba(0,0,0,0)',
@@ -1698,32 +1791,70 @@ function isMobilePlotViewport(): boolean {
 function getPlotTypography(isMobile: boolean) {
 	if (isMobile) {
 		return {
-			title: 14,
-			legend: 10,
+			title: 12,
+			legend: 8,
 			hover: 11,
 			modebar: 16,
-			annotation: 11,
+			annotation: 10,
 			axis: 10,
 			axisTitle: 10,
 			tick: 9,
 			sliderCurrent: 11,
-			margin: { l: 18, r: 6, b: 16, t: 72, pad: 2 },
+			margin: { l: 18, r: 6, b: 45, t: 72, pad: 2 },
 			margin3d: { l: 8, r: 8, b: 8, t: 48, pad: 2 }
 		};
 	}
 
 	return {
-		title: 22,
+		title: 20,
 		legend: 14,
 		hover: 14,
 		modebar: 24,
 		annotation: 14,
 		axis: 18,
-		axisTitle: 18,
+		axisTitle: 14,
 		tick: 16,
 		sliderCurrent: 16,
-		margin: { l: 60, r: 25, b: 65, t: 60, pad: 5 },
+		margin: { l: 65, r: 25, b: 75, t: 60, pad: 5 },
 		margin3d: { l: 36, r: 16, b: 16, t: 36, pad: 2 }
+	};
+}
+
+function getLegendLayout(
+	traceCount: number,
+	fontFamily: string,
+	fontSize: number
+): {
+	orientation: 'v' | 'h';
+	yanchor: 'top';
+	y: number;
+	yref: 'container';
+	xanchor: 'right';
+	x: number;
+	xref: 'container';
+	traceorder: 'normal';
+	valign: 'top';
+	entrywidthmode?: 'pixels';
+	entrywidth?: number;
+	font: { size: number; family: string };
+	title: null;
+} {
+	const useTwoColumns = traceCount > 4;
+
+	return {
+		orientation: useTwoColumns ? 'h' : 'v',
+		yanchor: 'top',
+		y: 1,
+		yref: 'container',
+		xanchor: 'right',
+		x: 1,
+		xref: 'container',
+		traceorder: 'normal',
+		valign: 'top',
+		entrywidthmode: useTwoColumns ? 'pixels' : undefined,
+		entrywidth: useTwoColumns ? 0 : undefined,
+		font: { size: fontSize, family: fontFamily },
+		title: null
 	};
 }
 
@@ -1870,7 +2001,13 @@ export function plotly_2D_generator(
 		const { planeName, mode } = traceData;
 
 		// Format the display name
-		const displayName = mode ? `${planeName} (${mode})` : planeName;
+		const fullDisplayName = mode ? `${planeName} (${mode})` : planeName;
+		const displayName = getConstrainedLegendLabel(
+			fullDisplayName,
+			isMobileViewport,
+			plotTypography.legend,
+			font_fam
+		);
 
 		const colo_index = traceData.selectionIndex;
 		const traceColor = colour_set[colo_index % colour_set.length];
@@ -1889,7 +2026,7 @@ export function plotly_2D_generator(
 				name: displayName,
 				marker: { color: traceColor },
 				hoverinfo: 'x+y+text',
-				text: displayName,
+				text: fullDisplayName,
 				hoverlabel: getTraceHoverLabelStyle(effectiveHoverMode, bg_col, traceColor)
 			});
 		} else {
@@ -1902,7 +2039,7 @@ export function plotly_2D_generator(
 				name: displayName,
 				marker: { color: traceColor },
 				hoverinfo: 'x+y+text',
-				text: displayName,
+				text: fullDisplayName,
 				hoverlabel: getTraceHoverLabelStyle(effectiveHoverMode, bg_col, traceColor)
 			});
 		}
@@ -2028,7 +2165,7 @@ export function plotly_2D_generator(
 					? 'Engine thrust'
 					: 'Thrust / Weight';
 	const title = vs_mode
-		? `${metricTitle} difference (${vs_label ?? 'Plane 1 - Plane 2'}) at altitudes`
+		? `${metricTitle} difference`
 		: `${metricTitle} at altitudes`;
 	const responseAxisLabelPrefix = vs_mode ? 'Δ ' : '';
 
@@ -2063,7 +2200,7 @@ export function plotly_2D_generator(
 	const no_bugwarning_x_anchor = 'right';
 	const no_bugwarning_y_anchor = 'bottom';
 	const axisTitleXAnnotationX = isMobileViewport ? 1 : 1;
-	const axisTitleXAnnotationY = isMobileViewport ? -0.06 : -0.0;
+	const axisTitleXAnnotationY = isMobileViewport ? -0.01 : -0.0;
 	const axisTitleYAnnotationX = isMobileViewport ? -0.055 : -0.03;
 	const axisTitleYAnnotationY = 1;
 
@@ -2079,18 +2216,13 @@ export function plotly_2D_generator(
 		title: {
 			text: title,
 			font: { size: plotTypography.title },
-			x: 0.5,
-			y: isMobileViewport ? 0.93 : 0.99,
+			x: 0,
+			xref: 'paper',
+			xanchor: 'left',
+			y: isMobileViewport ? 0.9 : 0.99,
 			yanchor: 'top'
 		},
-		legend: {
-			yanchor: 'top',
-			y: 1,
-			xanchor: 'right',
-			x: 1,
-			font: { size: plotTypography.legend, family: font_fam },
-			title: null
-		},
+		legend: getLegendLayout(traces.length, font_fam, plotTypography.legend),
 		showlegend: true,
 		hoverlabel: {
 			font: { color: '#fdfdfde6', size: plotTypography.hover, family: font_fam },
@@ -2099,14 +2231,16 @@ export function plotly_2D_generator(
 		},
 		hovermode: effectiveHoverMode,
 		font: { family: font_fam, color: '#fdfdfde6' },
-		margin: { ...plotTypography.margin, b: isMobileViewport ? 64 : 100 },
+		margin: {
+			...plotTypography.margin,
+			autoexpand: false
+		},
 		modebar: {
 			orientation: isMobileViewport ? 'h' : 'v',
 			bgcolor: 'rgba(0,0,0,0)',
 			color: 'rgb(205, 215, 225)',
 			activecolor: 'rgb(0, 111, 161)',
 			font: { size: plotTypography.modebar },
-			add: ['hoverclosest', 'hovercompare'],
 			remove: ['autoscale']
 		},
 		dragmode: 'pan',
@@ -2208,7 +2342,7 @@ export function plotly_2D_generator(
 		sliders: show_slider
 			? [
 					{
-						pad: { l: 0, t: 10, b: 6, r: 0 },
+						pad: { l: 0, t: 6, b: 0, r: 0 },
 						currentvalue: {
 							visible: true,
 							id: 'speed_annotation',
@@ -2228,8 +2362,9 @@ export function plotly_2D_generator(
 							(speed_values[speedIndices[speedIndices.length - 1]] / speed_factor).toFixed(0)
 						],
 						font: { color: '#fdfdfde6' },
+						ticklen: 0,
 						tickcolor: '#fdfdfde6',
-						tickwidth: 2,
+						tickwidth: 0,
 						active: initialSliderStep
 					}
 				]
@@ -2244,6 +2379,12 @@ export function plotly_2D_generator(
 		responsive: true,
 		showEditInChartStudio: false,
 		plotlyServerURL: 'https://chart-studio.plotly.com',
+		modeBarButtons: [
+			['toImage'],
+			['zoom2d', 'pan2d'],
+			['zoomIn2d', 'zoomOut2d'],
+			['resetScale2d']
+		],
 		toImageButtonOptions: {
 			filename: 'performance_plot',
 			format: 'png'

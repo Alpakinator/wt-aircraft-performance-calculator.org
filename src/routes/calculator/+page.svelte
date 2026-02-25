@@ -1035,7 +1035,7 @@
 	#fullscreen_toggle {
 		position: absolute;
 		width: auto;
-		top: 0.5rem;
+		top: 0.2rem;
 		left: 0.2rem;
 		z-index: 1000;
 	}
@@ -1048,6 +1048,18 @@
 		width: 2rem;
 		height: 2rem;
 	}
+
+	:global(#graphid .modebar-btn[data-title='Reset axes']) {
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+	}
+
+	:global(#graphid .modebar-btn[data-title='Reset axes'] .icon), :global(#graphid .modebar-btn[data-title='Reset camera to default'] .icon){
+		transform: scale(1.9);
+		transform-origin: 50% 100%;
+	}
+
 	.button-panel {
 		display: grid;
 		grid-template-rows: 1fr 1fr 1fr;
@@ -1263,6 +1275,23 @@
 	}
 
 	@media (max-width: 900px) {
+		#fullscreen_toggle {
+			top: max(0.35rem, env(safe-area-inset-top));
+			left: max(0.35rem, env(safe-area-inset-left));
+			right: auto;
+		}
+
+		:global(#graphid .modebar) {
+			top: max(0.35rem, env(safe-area-inset-top)) !important;
+			left: calc(max(0.35rem, env(safe-area-inset-left)) + 2.5rem) !important;
+			right: auto !important;
+			direction: rtl;
+		}
+
+		:global(#graphid .modebar-group) {
+			direction: rtl;
+		}
+
 		.ui {
 			position: fixed;
 			top: 50dvh;
