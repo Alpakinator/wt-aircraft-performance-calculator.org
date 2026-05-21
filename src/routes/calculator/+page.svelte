@@ -37,7 +37,7 @@
 	let air_temp = $state(15);
 	let air_temp_unit = $state('°C');
 	let axis_layout = $state(false);
-	let vs_mode = $state(true);
+	let vs_mode = $state(false);
 	let chosenplanes = $state(['mig-19s', 'lightning_f6']);
 	let chosenplanes_ingame = $state([]);
 	let fuel_percents = $state([]);

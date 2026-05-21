@@ -41,6 +41,20 @@
 		new Map<string, { hasBooster: boolean; defaultInclude: boolean }>()
 	);
 	let boosterMetaByFmKey = new Map<string, { hasBooster: boolean; defaultInclude: boolean }>();
+	let selectionCompatibilityNotice = $state('');
+	let clearSelectionCompatibilityNoticeTimeout: number | undefined;
+
+	function showSelectionCompatibilityNotice(removedCount: number) {
+		selectionCompatibilityNotice = `Removed ${removedCount} incompatible plane${removedCount === 1 ? '' : 's'} for selected graph type.`;
+
+		if (clearSelectionCompatibilityNoticeTimeout) {
+			clearTimeout(clearSelectionCompatibilityNoticeTimeout);
+		}
+
+		clearSelectionCompatibilityNoticeTimeout = window.setTimeout(() => {
+			selectionCompatibilityNotice = '';
+		}, 3500);
+	}
 
 	function extractBoosterMetaFromFm(fm: any): { hasBooster: boolean; defaultInclude: boolean } {
 		if (!fm || typeof fm !== 'object') {
@@ -146,6 +160,37 @@
 		}
 		return versionOptions[0]?.value ?? allversions[0];
 	}
+
+	$effect(() => {
+		const validBaseIds = new Set(filtered_planes.map((plane) => plane.id));
+		const keptIndices: number[] = [];
+		const removedSelectionIds: string[] = [];
+
+		chosenplanes.forEach((selectionId, index) => {
+			const baseId = selectionId.split(':')[0];
+			if (validBaseIds.has(baseId)) {
+				keptIndices.push(index);
+			} else {
+				removedSelectionIds.push(selectionId);
+			}
+		});
+
+		if (removedSelectionIds.length === 0) {
+			return;
+		}
+
+		removedSelectionIds.forEach((selectionId) => {
+			planeVersionBySelectionId.delete(selectionId);
+			boosterMetaBySelectionId.delete(selectionId);
+		});
+
+		chosenplanes = keptIndices.map((index) => chosenplanes[index]);
+		fuel_percents = keptIndices.map((index) => fuel_percents[index]);
+		include_boosters = keptIndices.map((index) => include_boosters[index]);
+		plane_versions = keptIndices.map((index) => plane_versions[index]);
+
+		showSelectionCompatibilityNotice(removedSelectionIds.length);
+	});
 
 	$effect(() => {
 		if (vs_mode && chosenplanes.length > 2) {
@@ -455,6 +500,10 @@
 	<grid-item></grid-item>
 	<label id="autocomplete_title">
 		Planes:
+		<span id="plane_mode_hint">
+			<span>power - no jets,</span>
+			<span>thrust - no props</span>
+		</span>
 		<button
 			type="button"
 			id="vs_button"
@@ -487,6 +536,9 @@
 			></Svelecte>
 		</div>
 	</label>
+	{#if selectionCompatibilityNotice}
+		<div id="plane_compatibility_notice">{selectionCompatibilityNotice}</div>
+	{/if}
 
 	{#each chosenplanes as plane, index (`${plane}-${index}`)}
 		<grid-plane class="plane_bar">
@@ -586,6 +638,30 @@
 		grid-row: 2;
 		align-self: start;
 		border-bottom: 0.2rem solid rgb(13, 17, 22);
+	}
+
+	#plane_mode_hint {
+		font-size: 0.78rem;
+		color: rgb(174, 177, 184);
+		margin-left: 0.5rem;
+		display: flex;
+		flex-direction: column;
+		line-height: 1.05;
+		flex-shrink: 0;
+	}
+
+	#plane_mode_hint > span {
+		display: block;
+		white-space: nowrap;
+	}
+
+	#plane_compatibility_notice {
+		grid-column: 1 / span 8;
+		font-size: 0.82rem;
+		padding: 0.2rem 0.5rem;
+		color: rgb(255, 210, 137);
+		background-color: rgba(30, 38, 46, 0.9);
+		border-bottom: 0.1rem solid rgba(255, 210, 137, 0.35);
 	}
 
 	#vs_button {
@@ -781,6 +857,11 @@
 			grid-column: 1;
 			padding-left: 0.3rem;
 			padding-right: 0.3rem;
+		}
+
+		#plane_mode_hint {
+			font-size: 0.72rem;
+			margin-left: 0.35rem;
 		}
 
 		#plane_autocomplete {
