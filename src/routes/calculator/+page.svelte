@@ -28,6 +28,7 @@
 	let power_modes = $state(['WEP']);
 	let speed_type = $state('IAS');
 	let speed = $state(700);
+	let prev_performance_type = 'thrust/weight';
 	let latestAutoAxisMin = $state(0);
 	let latestAutoAxisMax = $state(0);
 	let stupid = $state([0, 1, 5, 10]);
@@ -149,6 +150,27 @@
 		const clampedSpeed = validateSpeed(speed, speed_unit);
 		if (clampedSpeed !== speed) {
 			speed = clampedSpeed;
+		}
+	});
+
+	const speedUnitToKph: Record<string, number> = {
+		'km/h': 1,
+		'm/s': 3.6,
+		kt: 1.852,
+		mph: 1.609344,
+		'🐎💨': 40
+	};
+
+	$effect(() => {
+		const current = performance_type;
+		if (current !== prev_performance_type) {
+			const oldDefault = prev_performance_type === 'thrust' || prev_performance_type === 'thrust/weight' ? 700 : 300;
+			const newDefault = current === 'thrust' || current === 'thrust/weight' ? 700 : 300;
+			const toKph = speedUnitToKph[speed_unit] ?? 1;
+			if (Math.abs(speed * toKph - oldDefault) < 0.5) {
+				speed = Number((newDefault / toKph).toFixed(1));
+			}
+			prev_performance_type = current;
 		}
 	});
 
